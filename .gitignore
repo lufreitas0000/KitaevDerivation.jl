@@ -1,0 +1,7 @@
+.DS_Store
+*.swp
+/Manifest.toml
+/data/*
+!/data/.gitignore
+/.dvc/config.local
+/docs/build/
