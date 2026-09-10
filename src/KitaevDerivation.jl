@@ -11,6 +11,10 @@ abstract type AbstractQuantumOperator end
 abstract type FermionOp <: AbstractQuantumOperator end
 abstract type SpinOp <: AbstractQuantumOperator end
 abstract type ProjectorOp <: AbstractQuantumOperator end
+nstruct GenericOp <: AbstractQuantumOperator
+    name::Symbol
+end
+export GenericOp
 
 include("BasisAndAlgebra.jl")
 include("AuxiliaryOperators.jl")
