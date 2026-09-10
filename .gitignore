@@ -5,3 +5,4 @@
 !/data/.gitignore
 /.dvc/config.local
 /docs/build/
+/dummy_data.txt

@@ -1,0 +1,5 @@
+outs:
+- md5: e9c590a649018b5d1226e0038dda2906
+  size: 37
+  hash: md5
+  path: dummy_data.txt
