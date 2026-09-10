@@ -342,9 +342,9 @@ end
     @test apply_algebraic_rules(AbstractQuantumOperator[P_0, IdentityOp(), P_0]) == [P_0]
     @test apply_algebraic_rules(AbstractQuantumOperator[P_0, IdentityOp(), P_1]) == [ZeroOp()]
 
-    # 7. Mixed projector non-collapse (MultipletProjector and LowEnergyProjector do not collapse)
-    @test apply_algebraic_rules(AbstractQuantumOperator[ZeroOp()]) == [ZeroOp()]
-    @test apply_algebraic_rules(AbstractQuantumOperator[ZeroOp()]) == [ZeroOp()]
+    # 7. Mixed projector same-site orthogonality (MultipletProjector and LowEnergyProjector on same site annihilate)
+    @test apply_algebraic_rules(AbstractQuantumOperator[P_0, P_half]) == [ZeroOp()]
+    @test apply_algebraic_rules(AbstractQuantumOperator[P_half, P_0]) == [ZeroOp()]
 
     # 8. Cross-site projector independence: projectors on distinct sites (:i != :j)
     # act on different Hilbert spaces and must NOT annihilate each other or collapse.

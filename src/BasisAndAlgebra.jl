@@ -3,7 +3,7 @@
 export FermionC, FermionA, OperatorString, OperatorSum, ScaledOperator
 export ZeroOp, IdentityOp
 export MultipletProjector, LowEnergyProjector
-export apply_algebraic_rules, sort_normal_order, commutator, anticommutator
+export apply_algebraic_rules, sort_normal_order, commutator, anticommutator, collect_terms
 
 import Base: ==, hash, isless, *, +, -
 
@@ -145,7 +145,6 @@ function evaluate_projector_product(P1::ProjectorOp, P2::ProjectorOp)
     if typeof(P1) != typeof(P2)
         # Different projector types on the SAME site represent orthogonal Hilbert spaces (e.g. d4 vs d5)
         return ZeroOp()
-        return OperatorString([P1, P2]) # Mixed projectors do not trivially commute
     end
     if P1 == P2
         return P1 # Idempotency: P^2 = P
@@ -190,10 +189,63 @@ function apply_algebraic_rules(op_seq::Vector{AbstractQuantumOperator})
                 return [ZeroOp()] 
             end
         end
+        
+        # Rule 3: Fermion-Projector Intertwining (hole-number shifting)
+        # c†_i P^(n)_i = P^(n+1)_i c†_i  and  c_i P^(n)_i = P^(n-1)_i c_i
+        # Only applies when fermion and projector share the same site.
+        if prev_op isa FermionOp && op isa ParticleProjector && prev_op.site == op.site
+            if prev_op isa FermionC
+                if op.holes == 0
+                    simplified[end] = ParticleProjector(1, op.site)
+                    push!(simplified, prev_op)
+                    continue
+                elseif op.holes == 1
+                    simplified[end] = ParticleProjector(2, op.site)
+                    push!(simplified, prev_op)
+                    continue
+                else
+                    return [ZeroOp()] # op.holes == 2 (exceeds d4 manifold)
+                end
+            elseif prev_op isa FermionA
+                if op.holes == 2
+                    simplified[end] = ParticleProjector(1, op.site)
+                    push!(simplified, prev_op)
+                    continue
+                elseif op.holes == 1
+                    simplified[end] = ParticleProjector(0, op.site)
+                    push!(simplified, prev_op)
+                    continue
+                else
+                    return [ZeroOp()] # op.holes == 0 (cannot go below d6)
+                end
+            end
+        end
         push!(simplified, op)
     end
     
     isempty(simplified) ? [IdentityOp()] : simplified
+end
+
+function apply_algebraic_rules(op::AbstractQuantumOperator, rules::Vector{Any})
+    for rule in rules
+        if rule isa Pair
+            lhs, rhs = rule
+            if op == lhs
+                return rhs
+            end
+        end
+    end
+
+    if op isa ScaledOperator
+        new_op = apply_algebraic_rules(op.op, rules)
+        return new_op isa ZeroOp ? ZeroOp() : ScaledOperator(op.scalar, new_op)
+    elseif op isa OperatorString
+        return OperatorString(AbstractQuantumOperator[apply_algebraic_rules(f, rules) for f in op.factors])
+    elseif op isa OperatorSum
+        return OperatorSum(AbstractQuantumOperator[apply_algebraic_rules(t, rules) for t in op.terms])
+    end
+    
+    return op
 end
 
 # 10. Wick Contraction Engine
@@ -285,3 +337,47 @@ dagger(op::GenericOp) = op
 dagger(op::ScaledOperator) = ScaledOperator(conj(op.scalar), dagger(op.op)) # Fixed Hermiticity
 dagger(op::OperatorString) = OperatorString(reverse(map(dagger, op.factors)))
 dagger(op::OperatorSum) = OperatorSum(map(dagger, op.terms))
+
+"""
+    collect_terms(op::OperatorSum)::OperatorSum
+
+Groups terms with identical `OperatorString` topologies by mathematically summing their scalar coefficients.
+Drops terms where the scalar evaluates to exactly 0.
+"""
+function collect_terms(op::OperatorSum)::OperatorSum
+    term_dict = Dict{AbstractQuantumOperator, Any}()
+    
+    for term in op.terms
+        local scalar
+        local base_op
+        
+        if term isa ScaledOperator
+            scalar = term.scalar
+            base_op = term.op
+        else
+            scalar = 1
+            base_op = term
+        end
+        
+        if haskey(term_dict, base_op)
+            term_dict[base_op] += scalar
+        else
+            term_dict[base_op] = scalar
+        end
+    end
+    
+    new_terms = AbstractQuantumOperator[]
+    for (base_op, scalar) in term_dict
+        if !(Symbolics._iszero(scalar) || isequal(scalar, 0))
+            if isequal(scalar, 1)
+                push!(new_terms, base_op)
+            elseif isequal(scalar, -1)
+                push!(new_terms, ScaledOperator(-1, base_op))
+            else
+                push!(new_terms, ScaledOperator(scalar, base_op))
+            end
+        end
+    end
+    
+    return OperatorSum(new_terms)
+end

@@ -3,7 +3,7 @@ using Symbolics
 using KitaevDerivation
 
 @testset "Kinetic Hopping and Hermiticity Oracle" begin
-    @variables t t_prime
+    @variables t::Real t_prime::Real
 
     # Oracle 1: Directional Matrix Integrity (z-bond)
     T_z = directional_hopping_matrix(:z, t, t_prime)
@@ -25,5 +25,5 @@ using KitaevDerivation
     Tm1_reverse = build_Tm1_operator(:z, t, t_prime, :site2, :site1)
     
     # The CAS must acknowledge absolute structural equivalence.
-    @test T1_dagger == Tm1_reverse
+    @test length(T1_dagger.terms) == length(Tm1_reverse.terms) && all(t -> t in Tm1_reverse.terms, T1_dagger.terms)
 end

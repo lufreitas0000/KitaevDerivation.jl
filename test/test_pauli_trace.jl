@@ -2,16 +2,11 @@ using Test
 using Symbolics
 using KitaevDerivation
 
-# Stub trace evaluation function to be implemented via ExchangeExtraction.jl
-function evaluate_pauli_trace(expr)
-    # The Implementation Agent will build the non-commutative rewrite rules
-    # to reduce trace operations to Levi-Civita and Kronecker Deltas.
-    return expr
-end
-
 @testset "[PHYSICAL_ORACLE] Pauli Trace Extraction Oracles" begin
     # Defining the symbolic Pauli matrices for Phase 3 Prep
-    @variables sigma_1 sigma_2 sigma_3
+    sigma_1 = SpinComposite(:i, :x)
+    sigma_2 = SpinComposite(:i, :y)
+    sigma_3 = SpinComposite(:i, :z)
 
     # Oracle 1: Tr(\sigma^\alpha) = 0
     # Single Pauli matrices are traceless

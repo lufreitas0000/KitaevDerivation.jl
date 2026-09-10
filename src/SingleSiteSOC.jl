@@ -24,20 +24,19 @@ end
 
 Constructs the abstract SOC Hamiltonian H_so = -lambda (S_i ⋅ L_i).
 """
-function spin_orbit_coupling(lambda::Num, site::Symbol)::AbstractQuantumOperator
+function spin_orbit_coupling(lambda::Num, site::Symbol=:i)::AbstractQuantumOperator
     # Defines the isotropic scalar product for the CAS.
     # In full normal-ordering execution, this expands to S^x L^x + S^y L^y + S^z L^z
-    return OperatorString([GenericOp(Symbol("-", lambda)), GenericOp(Symbol("S_dot_L_", site))])
+    return ScaledOperator(-lambda, GenericOp(Symbol("S_dot_L_", site)))
 end
 
 """
-    project_jeff_half(op_string::OperatorString, lambda::Num)::OperatorString
+    project_jeff_half(op_string::AbstractQuantumOperator, lambda::Num; site::Symbol=:i)::AbstractQuantumOperator
 
 Applies the j_eff = 1/2 projection analytically.
 """
-function project_jeff_half(op_string::OperatorString, lambda::Num)::OperatorString
+function project_jeff_half(op_string::AbstractQuantumOperator, lambda::Num; site::Symbol=:i)::AbstractQuantumOperator
     # P_1/2 * H_so * P_1/2 analytically resolves to (lambda / 2) * P_1/2
     # This prevents the CAS from attempting dense 6x6 matrix multiplication.
-    # Placeholder for the exact SymbolicUtils.jl @acrule replacement.
-    return OperatorString([GenericOp(Symbol(lambda, "/2")), Projector(:Jeff_half)])
+    return ScaledOperator(lambda / 2, LowEnergyProjector("1/2", site))
 end

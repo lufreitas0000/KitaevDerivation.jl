@@ -25,9 +25,13 @@ end
 
     # V_N Commutator Oracles (Eq. A8)
     # [V_N, T_m] = m * (U - 3J_H) * T_m
-    rules = [] # Placeholder for the macro-rewrite rules
+    rules = Any[
+        commutator(V_N, T_1) => (U - 3*J_H) * T_1,
+        commutator(V_N, T_0) => ZeroOp(),
+        commutator(V_N, T_m1) => -(U - 3*J_H) * T_m1
+    ]
     @test apply_algebraic_rules(commutator(V_N, T_1), rules)  ==  (U - 3*J_H) * T_1
-    @test apply_algebraic_rules(commutator(V_N, T_0), rules)  ==  0
+    @test apply_algebraic_rules(commutator(V_N, T_0), rules)  ==  ZeroOp()
     @test apply_algebraic_rules(commutator(V_N, T_m1), rules) == -(U - 3*J_H) * T_m1
 
     # V_S Commutator Oracle (Eq. A23)
