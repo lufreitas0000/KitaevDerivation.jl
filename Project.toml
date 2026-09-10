@@ -1,10 +1,25 @@
-[name]
 name = "KitaevDerivation"
-uuid = "12345678-1234-1234-1234-1234567890ab"
-authors = ["Lu Freitas"]
+uuid = "a71b2c45-9a8b-4b21-8812-71c1b12b5e21"
 version = "0.1.0"
+authors = ["Lu Freitas"]
 
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-QuantumAlgebra = "8b23f2f8-0fc6-407a-b5e1-88f61eb22168"
+QuantumAlgebra = "1b9008d5-2a9d-4901-8cfb-44bb87795b64"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
+
+[compat]
+Documenter = "1.19.0"
+QuantumAlgebra = "1.6.0"
+Symbolics = "7.39.2"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
+
+[compat]
+julia = "1.10"
+QuantumAlgebra = "1.1"
+Symbolics = "6.2"
