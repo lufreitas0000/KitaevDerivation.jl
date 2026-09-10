@@ -27,10 +27,12 @@ end
 # 3. Physically Segregated Projectors
 struct MultipletProjector <: ProjectorOp
     L::Int # 0, 1, 2
+    site::Symbol
 end
 
 struct LowEnergyProjector <: ProjectorOp
     jeff::String # "1/2", "3/2"
+    site::Symbol
 end
 
 # 4. AST Composite Nodes
@@ -106,17 +108,22 @@ function anticommutator(A::AbstractQuantumOperator, B::AbstractQuantumOperator)
     return (A * B) + (B * A)
 end
 
+anticommutator(A::ScaledOperator, B::AbstractQuantumOperator) = A.scalar * anticommutator(A.op, B)
+anticommutator(A::AbstractQuantumOperator, B::ScaledOperator) = B.scalar * anticommutator(A, B.op)
+anticommutator(A::ScaledOperator, B::ScaledOperator) = (A.scalar * B.scalar) * anticommutator(A.op, B.op)
+
 # 7. Base Equivalence and Ordering Logic
 ==(a::FermionC, b::FermionC) = (a.site == b.site) && (a.orbital == b.orbital) && (a.spin == b.spin)
 ==(a::FermionA, b::FermionA) = (a.site == b.site) && (a.orbital == b.orbital) && (a.spin == b.spin)
-==(a::MultipletProjector, b::MultipletProjector) = a.L == b.L
-==(a::LowEnergyProjector, b::LowEnergyProjector) = a.jeff == b.jeff
+==(a::MultipletProjector, b::MultipletProjector) = (a.L == b.L) && (a.site == b.site)
+==(a::LowEnergyProjector, b::LowEnergyProjector) = (a.jeff == b.jeff) && (a.site == b.site)
 ==(a::ZeroOp, b::ZeroOp) = true
 ==(a::IdentityOp, b::IdentityOp) = true
 
 hash(a::FermionC, h::UInt) = hash(a.site, hash(a.orbital, hash(a.spin, hash(:FermionC, h))))
 hash(a::FermionA, h::UInt) = hash(a.site, hash(a.orbital, hash(a.spin, hash(:FermionA, h))))
-hash(a::MultipletProjector, h::UInt) = hash(a.L, hash(:MultipletProjector, h))
+hash(a::MultipletProjector, h::UInt) = hash(a.L, hash(a.site, hash(:MultipletProjector, h)))
+hash(a::LowEnergyProjector, h::UInt) = hash(a.jeff, hash(a.site, hash(:LowEnergyProjector, h)))
 hash(a::ZeroOp, h::UInt) = hash(:ZeroOp, h)
 hash(a::IdentityOp, h::UInt) = hash(:IdentityOp, h)
 
@@ -132,6 +139,9 @@ end
 
 # 8. Projector Algebra Engine (Orthogonality & Idempotency)
 function evaluate_projector_product(P1::ProjectorOp, P2::ProjectorOp)
+    if P1.site != P2.site
+        return OperatorString([P1, P2])
+    end
     if typeof(P1) != typeof(P2)
         return OperatorString([P1, P2]) # Mixed projectors do not trivially commute
     end

@@ -9,9 +9,9 @@ using KitaevDerivation
     # Oracles: Exact Analytical Energies
     eigenvalues = kanamori_eigenvalues(U, J_H)
     
-    P_L0 = MultipletProjector(0)
-    P_L1 = MultipletProjector(1)
-    P_L2 = MultipletProjector(2)
+    P_L0 = MultipletProjector(0, :i)
+    P_L1 = MultipletProjector(1, :i)
+    P_L2 = MultipletProjector(2, :i)
     R    = ResolventOp()
     
     # Canonical Kanamori multiplet energies:
