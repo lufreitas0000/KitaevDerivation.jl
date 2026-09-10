@@ -6,4 +6,6 @@ using KitaevDerivation
     include("test_appendix_a.jl")
     include("test_soc.jl")
     include("test_kanamori.jl")
+    include("test_schrieffer_wolff.jl")
+    include("test_exchange.jl")
 end
