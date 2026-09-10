@@ -7,7 +7,7 @@ using KitaevDerivation
     @variables U J_H
     
     # Oracles: Exact Analytical Energies
-    eigenvalues = kanamori_eigenvalues(U, J_H)
+    eigenvalues = kanamori_eigenvalues(U, J_H, :i)
     
     P_L0 = MultipletProjector(0, :i)
     P_L1 = MultipletProjector(1, :i)
@@ -23,11 +23,11 @@ using KitaevDerivation
     @test isequal(eigenvalues[P_L2], U - J_H)
 
     # Oracle: Multiplet Projector Tuple
-    P_tuple = d4_multiplet_projectors()
+    P_tuple = d4_multiplet_projectors(:i)
     @test P_tuple == (P_L0, P_L1, P_L2)
     
     # Oracle: Resolvent Rewriting Engine
-    rules = kanamori_resolvent_rules(U, J_H)
+    rules = kanamori_resolvent_rules(U, J_H, :i)
     @test length(rules) == 6
     
     # Verify R * P_L -> OperatorString([R, P_L]) AST representation

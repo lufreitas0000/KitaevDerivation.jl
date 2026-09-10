@@ -50,8 +50,8 @@ struct OperatorSum <: AbstractQuantumOperator
 end
 
 # 5. Base Arithmetic Overloads for AST Construction
-*(a::Number, b::AbstractQuantumOperator) = a == 0 ? ZeroOp() : a == 1 ? b : ScaledOperator(a, b)
-*(a::Any, b::AbstractQuantumOperator) = ScaledOperator(a, b) # For Symbolics.Num
+*(a::Number, b::AbstractQuantumOperator) = b isa ZeroOp ? ZeroOp() : isequal(a, 0) ? ZeroOp() : isequal(a, 1) ? b : ScaledOperator(a, b)
+*(a::Any, b::AbstractQuantumOperator) = b isa ZeroOp ? ZeroOp() : (Symbolics._iszero(a) ? ZeroOp() : ScaledOperator(a, b))
 
 function Base.:*(a::AbstractQuantumOperator, b::AbstractQuantumOperator)
     a isa ZeroOp && return ZeroOp()
@@ -143,6 +143,8 @@ function evaluate_projector_product(P1::ProjectorOp, P2::ProjectorOp)
         return OperatorString([P1, P2])
     end
     if typeof(P1) != typeof(P2)
+        # Different projector types on the SAME site represent orthogonal Hilbert spaces (e.g. d4 vs d5)
+        return ZeroOp()
         return OperatorString([P1, P2]) # Mixed projectors do not trivially commute
     end
     if P1 == P2
@@ -280,6 +282,6 @@ dagger(op::ProjectorOp) = op # Projectors are Hermitian
 dagger(op::IdentityOp) = op
 dagger(op::ZeroOp) = op
 dagger(op::GenericOp) = op
-dagger(op::ScaledOperator) = ScaledOperator(op.scalar, dagger(op.op)) # Assuming real kinetic scalars (t, t')
+dagger(op::ScaledOperator) = ScaledOperator(conj(op.scalar), dagger(op.op)) # Fixed Hermiticity
 dagger(op::OperatorString) = OperatorString(reverse(map(dagger, op.factors)))
 dagger(op::OperatorSum) = OperatorSum(map(dagger, op.terms))
