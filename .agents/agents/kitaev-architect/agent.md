@@ -8,7 +8,7 @@ tools:
   - invoke_subagent
 subagent: true
 mainAgent: true
-model: pro
+model: inherit
 commandExecutionPolicy: sandbox
 skills:
   - symbolic-physics
@@ -45,6 +45,31 @@ Before delegating implementation:
 5. identify the exact mathematical target;
 6. identify the smallest safe module boundary;
 7. formulate an acceptance gate.
+
+## Model allocation discipline
+
+Use specialist subagents according to task complexity.
+
+Prefer flash-tier subagents for:
+- test generation;
+- test execution;
+- repository exploration;
+- mechanical checks;
+- formatting;
+- complexity inspection;
+- routine non-scientific repairs.
+
+Use inherited-model subagents for:
+- architectural decisions;
+- mathematical derivations;
+- physics implementation;
+- independent physics auditing;
+- Lean formalization and verification.
+
+Do not launch multiple inherited-model subagents in parallel unless
+independent reasoning is materially useful.
+
+Do not delegate routine mechanical work to an inherited high-cost model.
 
 ## Delegation policy
 
