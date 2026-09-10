@@ -1,22 +1,16 @@
 # Spin-Orbit Coupling and T-P Equivalence
 
-"""
-    t_p_equivalence_rules()::Vector{Any}
+export t_p_equivalence_rules, spin_orbit_coupling, project_jeff_half
 
-Maps the orbital angular momentum L to the effective angular momentum -l_eff.
-"""
-function t_p_equivalence_rules()::Vector{Any} end
+function t_p_equivalence_rules()::Vector{Any}
+    # TODO: Define rewriting rules mapping L to -l_eff
+    return []
+end
 
-"""
-    spin_orbit_coupling(lambda::Num)::AbstractQuantumOperator
+function spin_orbit_coupling(lambda::Num)::AbstractQuantumOperator
+    # TODO: Construct H_so = -lambda (S_i \cdot L_i)
+end
 
-Constructs the SOC Hamiltonian H_so = -lambda (S_i ⋅ L_i).
-"""
-function spin_orbit_coupling(lambda::Num)::AbstractQuantumOperator end
-
-"""
-    project_jeff_half(op::AbstractQuantumOperator)::AbstractQuantumOperator
-
-Applies the projection operator isolating the j_eff = 1/2 subspace.
-"""
-function project_jeff_half(op::AbstractQuantumOperator)::AbstractQuantumOperator end
+function project_jeff_half(op::AbstractQuantumOperator)::AbstractQuantumOperator
+    # TODO: Apply j_eff = 1/2 projection
+end
