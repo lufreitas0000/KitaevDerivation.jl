@@ -1,22 +1,27 @@
-# Perturbation Theory and Resolvent
+# Generalized Perturbation Theory and Resolvent Operator
+
+export compute_generator, compute_effective_hamiltonian
 
 """
-    hopping_hamiltonian(bond::Symbol, t::Num, t_prime::Num)::AbstractQuantumOperator
+    compute_generator(order::Int, V::AbstractQuantumOperator, T_terms::Dict{Int, AbstractQuantumOperator})
 
-Constructs the kinetic hopping operator T dependent on the geometric bond (x, y, z).
+Recursively solves the Lie algebra constraint for the canonical transformation generator S_n:
+[S_n, V] + \\sum_{k=1}^{n-1} [S_k, T] + T^{(n)} = 0
+
+For order 1: [S_1, V] = T_1 + T_{-1}
+For order 2: [S_2, V] + [S_1, T_0] = 0
 """
-function hopping_hamiltonian(bond::Symbol, t::Num, t_prime::Num)::AbstractQuantumOperator end
+function compute_generator(order::Int, V::AbstractQuantumOperator, T_terms::Dict{Int, AbstractQuantumOperator})::AbstractQuantumOperator
+    # TODO: Implement recursive abstract commutator resolution utilizing the
+    # Delta E_L eigenvalue mappings and Projector orthogonality rules.
+end
 
 """
-    apply_resolvent_action(op_sequence::Vector{AbstractQuantumOperator})::AbstractQuantumOperator
+    compute_effective_hamiltonian(order::Int, S_generators::Vector{AbstractQuantumOperator}, T_terms::Dict{Int, AbstractQuantumOperator})
 
-Applies the operator sequence right-to-left on the ground state, preventatively pruning null terms to avoid AST combinatorial explosion.
+Evaluates the Baker-Campbell-Hausdorff (BCH) expansion projected onto the low-energy manifold \\mathcal{P}_{low}.
 """
-function apply_resolvent_action(op_sequence::Vector{AbstractQuantumOperator})::AbstractQuantumOperator end
-
-"""
-    schrieffer_wolff_expansion(H0::AbstractQuantumOperator, Ht::AbstractQuantumOperator, order::Int)::AbstractQuantumOperator
-
-Generates the effective Hamiltonian via canonical transformation up to the specified order.
-"""
-function schrieffer_wolff_expansion(H0::AbstractQuantumOperator, Ht::AbstractQuantumOperator, order::Int)::AbstractQuantumOperator end
+function compute_effective_hamiltonian(order::Int, S_generators::Vector{AbstractQuantumOperator}, T_terms::Dict{Int, AbstractQuantumOperator})::AbstractQuantumOperator
+    # TODO: Implement normal-ordered commutator expansions up to `order`.
+    # E.g., H_eff^(2) = -1/2 P_low (T_{-1} S_1^{(+)} + S_1^{(-)} T_1) P_low
+end

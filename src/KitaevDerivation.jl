@@ -13,6 +13,7 @@ abstract type SpinOp <: AbstractQuantumOperator end
 abstract type ProjectorOp <: AbstractQuantumOperator end
 
 include("BasisAndAlgebra.jl")
+include("AuxiliaryOperators.jl")
 include("SingleSiteSOC.jl")
 include("TwoSiteKanamori.jl")
 include("SchriefferWolff.jl")
