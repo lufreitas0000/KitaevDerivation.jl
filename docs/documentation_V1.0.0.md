@@ -45,3 +45,27 @@ The working environment `KitaevDerivation.jl` is initialized. Dual version contr
 * Define Julia Project.toml with Symbolics.jl and QuantumAlgebra.jl.
 * Instantiate Lean 4 toolchain (v4.33.1) and Lakefile.
 * Initialize Git and DVC version control environments.
+
+
+
+## 5. Integration with Google Antigravity agent AGY on VS code WSL Ubuntu
+
+Git tracks source code, configuration, experiments, and DVC metadata. DVC tracks large data/artifacts. Never commit DVC-managed data files to Git.
+
+### Using DVC with an Agentic Coding Workflow
+
+Integrating Data Version Control (DVC) alongside Git and GitHub within an agentic coding system requires a clear division of labor: **Git tracks source code, configurations, and DVC metadata**, while **DVC tracks large data, models, and experiment artifacts** (stored in a remote destination like Google Drive).
+
+For an autonomous coding agent to operate safely and predictably, it must distinguish between different types of changes and apply the corresponding workflow:
+
+* **Code-only changes:** When modifying source code, notebooks, configurations, or tests, standard Git operations are sufficient (`git add .`, `git commit -m "..."`, `git push`). No DVC commands are required.
+* **Data-only changes:** If a DVC-tracked file is modified, update its content hash and metadata by running `dvc add <file>`, commit the resulting `.dvc` file to Git, push the metadata to GitHub via `git push`, and finally upload the actual data object to the remote storage using `dvc push`.
+* **Combined code and data changes:** For projects where both analysis logic and results change simultaneously, update the DVC metadata first (`dvc add <changed-data>`), commit the complete project state via Git (`git add .`, `git commit`, `git push`), and conclude by pushing the actual data (`dvc push`). This establishes a reproducible link where a specific Git commit points to an exact `.dvc` hash.
+* **Retrieving project states:** When cloning or switching to a repository on another machine or agent, Git provides the source code and metadata, but the heavy data files remain local-only until retrieved using `dvc pull` right after a `git pull`.
+
+**Core Rules for Autonomous Coding Agents**
+
+* **Code in Git, Data in DVC:** Source code, notebooks, tests, documentation, and `.dvc` metadata belong in Git. Raw large datasets must stay out of Git and be managed entirely via `dvc add` and `dvc push`.
+* **Explicit retrieval:** Always follow repository updates with `dvc pull` to synchronize heavy data assets.
+* **Prohibit destructive commands:** Agents must never run `dvc gc` (garbage collection) automatically, as it can permanently purge cached or remote objects.
+* **Protect authentication:** Never modify, commit, or expose local configuration files (`.dvc/config.local`) or GDrive client secret credentials to Git.

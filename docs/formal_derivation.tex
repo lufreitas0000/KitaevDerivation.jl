@@ -1,0 +1,487 @@
+\documentclass[11pt, a4paper]{article}
+
+% --- UNIVERSAL PREAMBLE BLOCK ---
+\usepackage[a4paper, top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\usepackage{fontspec}
+
+\usepackage[english, bidi=basic, provide=*]{babel}
+
+\babelprovide[import, onchar=ids fonts]{english}
+
+% Set default/Latin font to Sans Serif in the main (rm) slot
+\babelfont{rm}{Noto Sans}
+% --------------------------------
+
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{braket}
+\usepackage{enumitem}
+
+% Allow page breaks in align environments for long derivations
+\allowdisplaybreaks
+
+% Hyperref must be the last package loaded
+\usepackage[colorlinks=true, linkcolor=blue, citecolor=blue, urlcolor=blue]{hyperref}
+
+\title{\textbf{Formal Derivation of the Extended Kitaev-Heisenberg Model}\\ \large Theory, Full Analytical Derivations, and Computational Blueprint}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+This document outlines the rigorous theoretical framework for deriving the low-energy effective spin Hamiltonian of strongly correlated $4d/5d$ Mott insulators (such as $\alpha$-RuCl$_3$) using the Jackeli-Khaliullin mechanism. We formally transcribe the exact Hubbard-Kanamori algebraic derivations---including higher-order canonical transformations and the effective charge density operator---to preserve all analytical steps. Furthermore, we resolve the intermediate state dimensionality, introduce the effects of local electrical potentials (impurities), and define a computational blueprint for executing and verifying this derivation symbolically using Julia and Lean 4.
+\end{abstract}
+
+\tableofcontents
+\vspace{1cm}
+
+\section{Physical Context and Core Approximations}
+
+To extract a tractable low-energy effective field theory from the full many-body Hamiltonian, we enforce a strict hierarchy of energy scales:
+\begin{equation}
+10Dq \gg U \sim U', J_H \gg \lambda_{\text{SOC}} \gg t_{ij}
+\end{equation}
+
+\subsection{The $10Dq \to \infty$ Approximation}
+The surrounding octahedral cage of ligand ions (e.g., Cl$^-$) creates an electrostatic crystal field that splits the transition metal's $d$-orbitals into a lower-energy, 3-fold degenerate $t_{2g}$ manifold and a higher-energy, 2-fold degenerate $e_g$ manifold. 
+
+Because the relevant low-energy dynamics ($\lambda_{\text{SOC}} \sim 0.15$ eV, $t \sim 0.1$ eV) are an order of magnitude smaller than the crystal field splitting ($10Dq \approx 2-3$ eV), virtual transitions into the $e_g$ shell are highly suppressed. Projecting out the $e_g$ states reduces the local single-particle basis from 10 states to 6, averting an exponential combinatorial explosion. This approximation breaks down under extreme lattice compression (which increases hopping $t_{ij}$) or strong Jahn-Teller distortions.
+
+\subsection{The $d^4$ Subspace Dimensionality}
+When a hole hops from site $i$ to site $j$, site $i$ transitions from $d^5$ (1 hole) to $d^4$ (2 holes). The dimensionality of this virtual intermediate state is given by the binomial coefficient of placing 2 identical holes into 6 available spin-orbitals:
+\begin{equation}
+\dim(\mathcal{H}_{\text{int}}) = \binom{6}{2} = 15 \text{ states}.
+\end{equation}
+Simultaneously, site $j$ transitions to $d^6$ (0 holes), forming a unique, non-degenerate filled shell. Thus, the resolvent operator $(E_0 - H_0)^{-1}$ acts entirely on the 15-dimensional $d^4$ manifold of site $i$.
+
+\section{Extensions Beyond the Pure Kitaev Model}
+
+The pristine Jackeli-Khaliullin mechanism on an ideal edge-sharing octahedra yields the Kitaev interaction $K$ and an isotropic Heisenberg exchange $J$. Real materials require extensions.
+
+\subsection{Non-Kitaev Interactions ($\Gamma$, $\Gamma'$)}
+Trigonal distortions modify the perfect $90^\circ$ Ru-Cl-Ru bond angle. Direct $d-d$ hopping ($t_1, t_3$) no longer perfectly cancels with ligand-mediated $p-d$ hopping ($t_2$). This generates symmetric off-diagonal exchange terms:
+\begin{equation}
+H_{\Gamma} = \Gamma (S_i^\alpha S_j^\beta + S_i^\beta S_j^\alpha)
+\end{equation}
+Computationally, this requires relaxing the symmetric structure of the $T_{ij}$ hopping matrices.
+
+\subsection{On-Site Impurities and Dzyaloshinskii-Moriya (DM) Interaction}
+Introducing a local electrical potential variation $V_0$ on site $i$ relative to site $j$ explicitly breaks the inversion symmetry center at the bond midpoint. 
+The unperturbed Hamiltonian becomes $H_0 = H_U + H_{\text{SOC}} + eV_0 N_i$. The intermediate resolvent must distinguish between hopping from $i \to j$ versus $j \to i$, breaking the denominator symmetry:
+\begin{equation}
+\Delta E_L \longrightarrow \Delta E_L \pm eV_0.
+\end{equation}
+This parity breaking allows antisymmetric exchange interactions (the DM interaction) $\bm{D}_{ij} \cdot (\bm{S}_i \times \bm{S}_j)$ to survive the projection to the $j_{\text{eff}}=1/2$ subspace.
+
+\section{Computational Blueprint: AI Sub-Agent Modular Architecture}
+
+To formally extract these highly non-commutative expansions using Computer Algebra Systems (CAS) like Julia (`QuantumAlgebra.jl` or `Symbolics.jl`), the problem must be strictly modularized. Attempting to diagonalize $10 \times 10$ matrices symbolically is algebraically impossible (Abel-Ruffini theorem). 
+
+\subsection{Julia Sub-Agent Pipeline}
+\begin{itemize}
+    \item \textbf{Module 1 (`BasisAndAlgebra.jl`):} Defines canonical anti-commutation relations (CAR) for fermions. Uses projection operators ($P_{\text{singlet}}$, $P_{\text{triplet}}$, $P_{L=0,1,2}$) instead of explicitly constructing the $15 \times 15$ intermediate $d^4$ matrices.
+    \item \textbf{Module 2 (`SingleSiteSOC.jl`):} Implements the $T-P$ equivalence ($\bm{L} = -\bm{l}_{\text{eff}}$) and constructs the unitary mapping to the $j_{\text{eff}}=1/2$ Kramers doublet.
+    \item \textbf{Module 3 (`SchriefferWolff.jl`):} Computes the symbolic resolvent $\mathcal{P}_0 H_t (E_0 - H_0)^{-1} H_t \mathcal{P}_0$ using the exact $d^4$ multiplet analytical energies ($\Delta E_0, \Delta E_1, \Delta E_2$). 
+    \item \textbf{Module 4 (`ExchangeExtraction.jl`):} Uses Pauli trace identities to factorize the resulting $4 \times 4$ operator matrix into $J, K, \Gamma, \Gamma'$ and $D$ (if impurities are active).
+\end{itemize}
+
+\subsection{Test-Driven Development (TDD) for Mathematical Physics}
+To guarantee the CAS output is physically sound, we enforce algebraic Oracles:
+\begin{enumerate}
+    \item \textbf{The Jackeli-Khaliullin Cancellation:} If Hund's coupling is turned off ($J_H = 0$), quantum interference strictly forces $J=0, K=0, \Gamma=0$.
+    \item \textbf{The Pure Heisenberg Limit:} If $\lambda_{\text{SOC}} \to 0$, anisotropic terms ($K, \Gamma$) must strictly vanish.
+    \item \textbf{Point-Group Verification:} Under $C_2$ bond inversion, the extracted tensor must map symmetrically (e.g., $J_{xx} = J_{yy} \neq J_{zz}$ on a $z$-bond).
+\end{enumerate}
+
+\subsection{Lean 4: Proof-Carrying Translation Validation}
+Lean 4 acts as the formal verifier of the underlying group theory. Julia computes the perturbation expansion and logs an Abstract Syntax Tree (AST) proof certificate of the rewriting steps. Lean 4 parses this certificate, verifying that each equality strictly adheres to the axioms of non-commutative rings and the $D_{3d}$ / $C_{3v}$ point group symmetries of the honeycomb lattice.
+
+\newpage
+\section{Hubbard-Kanamori model}
+
+We now consider the multi-orbital Hubbard-Kanamori model for $d^5$ electrons in an edge-sharing octahedra environment.
+
+\subsection{The model}
+The electrons in the open $d$ shell of a $\text{Ru}^{3+}$ ion in a cubic crystal field occupy three $t_{2g}$ orbitals $xy, yz, zx$, which we may denote by the complementary index $\alpha = z, x, y$, respectively. With five electrons per ion, the local low-energy subspace is spanned by states of the form $|\overline{\alpha}\overline{\sigma}\rangle = d_{\alpha\sigma}|F\rangle$ where $|F\rangle = \prod_{\alpha,\sigma}d_{\alpha\sigma}^{\dagger}|0\rangle$ is the filled-shell state. At each site, we define the operators associated with the number of electrons $N_i$, total spin $\bm{S}_i$, and orbital angular momentum $\bm{L}_i$ by
+\begin{equation}
+N_i = \sum_{\alpha}d_{i\alpha}^{\dagger}d_{i\alpha}, \quad \bm{S}_i = \frac{1}{2}\sum_{\alpha}d_{i\alpha}^{\dagger}\bm{\sigma} d_{i\alpha}, \quad \bm{L}_i = \sum_{\alpha\beta}d_{i\alpha}^{\dagger}(\bm{l})_{\alpha\beta}d_{i\beta}
+\end{equation}
+with $d_{i\alpha}^{\dagger} = (d_{i\alpha\uparrow}^{\dagger}, d_{i\alpha\downarrow}^{\dagger})$. The matrix vector $\bm{l} = (l^x, l^y, l^z)$ represents the $l_{\text{eff}}=1$ orbital angular momentum of the $t_{2g}$ states. In the orbital basis $\{|x\rangle, |y\rangle, |z\rangle\}$ we have
+\begin{equation}
+l^x = \begin{pmatrix} 0 & 0 & 0 \\ 0 & 0 & -i \\ 0 & i & 0 \end{pmatrix}, \quad 
+l^y = \begin{pmatrix} 0 & 0 & i \\ 0 & 0 & 0 \\ -i & 0 & 0 \end{pmatrix}, \quad 
+l^z = \begin{pmatrix} 0 & -i & 0 \\ i & 0 & 0 \\ 0 & 0 & 0 \end{pmatrix}.
+\end{equation}
+
+The atomic Hamiltonian is
+\begin{equation}
+V = \sum_i \left[ \frac{U-3J_H}{2}(N_i-5)^2 - 2J_H \bm{S}_i^2 - \frac{J_H}{2}\bm{L}_i^2 \right] \label{eq:atomic_V}
+\end{equation}
+where $U$ is the on-site Coulomb repulsion and $0 < J_H < U/3$ is Hund's coupling. The Hamiltonian must also include the spin-orbit coupling
+\begin{equation}
+H_{so} = -\lambda \sum_i \bm{S}_i \cdot \bm{L}_i
+\end{equation}
+with $\lambda > 0$. Note that there is a minus sign when taking the projection of the original orbital angular momentum operator for $d$ electrons (corresponding to $l=2$) onto the $t_{2g}$ subspace (where we get $l_{\text{eff}}=1$). For $\lambda=0$, the ground state of the atomic Hamiltonian for each site has quantum numbers $N_i=5$, $S_i=1/2$, $L_i=1$ and is sixfold degenerate. The spin-orbit coupling partially lifts this degeneracy by splitting the $t_{2g}$ states into two multiplets with total angular momentum $j_{\text{eff}}=1/2$ and $j_{\text{eff}}=3/2$. The ground state for the $4d^5$ configuration is the $j_{\text{eff}}=1/2$ doublet. This is the reason why we shall find an effective spin-$1/2$ model at the end. We will follow the standard procedure in the regime $t \ll \lambda \ll U, J_H$ and implement the spin-orbit coupling at the end, by projecting the operators onto the $j_{\text{eff}}=1/2$ subspace. This means we will calculate matrix elements between the states
+\begin{align}
+|+\rangle &\equiv \left|\frac{1}{2}, \frac{1}{2}\right\rangle = \frac{1}{\sqrt{3}} (-|z, \uparrow\rangle - i|y, \downarrow\rangle - |x, \downarrow\rangle) \\
+|-\rangle &\equiv \left|\frac{1}{2}, -\frac{1}{2}\right\rangle = \frac{1}{\sqrt{3}} (|z, \downarrow\rangle + i|y, \uparrow\rangle - |x, \uparrow\rangle)
+\end{align}
+
+We consider the orbital- and bond-dependent hopping Hamiltonian
+\begin{equation}
+T = \sum_{\gamma} \left[ t \sum_{\langle ij \rangle_{\gamma}} d_{i\alpha}^{\dagger} d_{j\beta} + t' \sum_{\langle\langle ij \rangle\rangle_{\gamma}} d_{i\alpha}^{\dagger} d_{j\beta} + (\alpha \leftrightarrow \beta) \right]
+\end{equation}
+To simplify the calculations, we use the particle-hole transformation
+\begin{equation}
+d_{i\alpha} = \begin{pmatrix} d_{i\alpha\uparrow} \\ d_{i\alpha\downarrow} \end{pmatrix} \equiv \begin{pmatrix} h_{i\alpha\downarrow}^{\dagger} \\ -h_{i\alpha\uparrow}^{\dagger} \end{pmatrix} = i\sigma^y (h_{i\alpha}^{\dagger})^t.
+\end{equation}
+In terms of the hole operator $h_{i\alpha}$, we have
+\begin{equation}
+\overline{N}_i = 6 - N_i = \sum_{\alpha} h_{i\alpha}^{\dagger} h_{i\alpha}, \quad \bm{S}_i = \frac{1}{2} \sum_{\alpha} h_{i\alpha}^{\dagger} \bm{\sigma} h_{i\alpha}, \quad \bm{L}_i = -\sum_{\alpha\beta} h_{i\alpha}^{\dagger} (\bm{l})_{\alpha\beta} h_{i\beta}
+\end{equation}
+The atomic Hamiltonian becomes
+\begin{equation}
+V = \sum_i \left[ \frac{U-3J_H}{2}(\overline{N}_i-1)^2 - 2J_H \bm{S}_i^2 - \frac{J_H}{2}\bm{L}_i^2 \right]
+\end{equation}
+In addition, we get the opposite sign for the spin-orbit coupling, which means that at low energies the single hole is in the $j_{\text{eff}}=1/2$ subspace. The hopping Hamiltonian also changes sign after the particle-hole transformation:
+\begin{equation}
+T = -\sum_{\gamma} \left[ t \sum_{\langle ij \rangle_{\gamma}} h_{i\alpha}^{\dagger} h_{j\beta} + t' \sum_{\langle\langle ij \rangle\rangle_{\gamma}} h_{i\alpha}^{\dagger} h_{j\beta} + (\alpha \leftrightarrow \beta) \right].
+\end{equation}
+
+Here it is convenient to introduce the index $s = (\alpha, \sigma)$ for orbital and spin degrees of freedom, and employ the six-component spinor
+\begin{equation}
+h_i^{\dagger} = (h_{ix\uparrow}^{\dagger}, h_{iy\uparrow}^{\dagger}, h_{iz\uparrow}^{\dagger}, h_{ix\downarrow}^{\dagger}, h_{iy\downarrow}^{\dagger}, h_{iz\downarrow}^{\dagger}).
+\end{equation}
+The hopping amplitudes can be written as
+\begin{equation}
+t_{ij}^{ss'} = (\mathbb{I}_2 \otimes T_{ij})_{ss'}
+\end{equation}
+where $\mathbb{I}_2$ denotes the identity in spin space and the matrix $T_{ij}$ in orbital space depends on the bond between $i$ and $j$. For nearest neighbor bonds, we have
+\begin{equation}
+T_{\langle ij \rangle_x} = t \begin{pmatrix} 0 & 0 & 0 \\ 0 & 0 & 1 \\ 0 & 1 & 0 \end{pmatrix}, \quad
+T_{\langle ij \rangle_y} = t \begin{pmatrix} 0 & 0 & 1 \\ 0 & 0 & 0 \\ 1 & 0 & 0 \end{pmatrix}, \quad
+T_{\langle ij \rangle_z} = t \begin{pmatrix} 0 & 1 & 0 \\ 1 & 0 & 0 \\ 0 & 0 & 0 \end{pmatrix}.
+\end{equation}
+Likewise, for next-nearest neighbors, we just replace $t$ by $t'$ in front of the matrices. We can also write
+\begin{equation}
+\overline{N}_i = h_i^{\dagger} h_i, \quad \bm{S}_i = \frac{1}{2} h_i^{\dagger} (\bm{\sigma} \otimes \mathbb{I}_3) h_i, \quad \bm{L}_i = -h_i^{\dagger} (\mathbb{I}_2 \otimes \bm{l}) h_i
+\end{equation}
+Moreover, we have the number operator for holes $n_{is} = h_{is}^{\dagger} h_{is}$ and its complement $n_{i\overline{s}} = \sum_{s' \neq s} h_{is'}^{\dagger} h_{is'}$ which can be written as
+\begin{equation}
+n_{is} = h_i^{\dagger} I_s h_i, \quad n_{i\overline{s}} = h_i^{\dagger} \overline{I}_s h_i
+\end{equation}
+where the diagonal matrices $I_s$ and $\overline{I}_s$ are defined by $(I_s)_{s's''} = \delta_{ss'} \delta_{s's''}$ and $\overline{I}_s = \mathbb{I}_6 - I_s$.
+
+We can now separate the hopping processes that change the number of sites with two holes. First, note that the local Hilbert space is spanned by the basis 
+$\{|F\rangle, |\overline{1}\rangle, \dots, |\overline{6}\rangle, |\overline{1}, \overline{2}\rangle, \dots, |\emptyset\rangle\}$, 
+where the numbers inside the kets indicate the states occupied by holes. We can write $\mathbb{I} = \sum_{n=0}^6 \mathcal{P}^{(n)}$, where $\mathcal{P}^{(n)}$ is the projection operator onto the subspace of states with $n$ holes. Considering the entire system, we can project into the low-energy space using
+\begin{equation}
+\mathcal{P}_{\text{low}} = \prod_j \mathcal{P}_j^{(1)}, \quad \mathcal{P}_j^{(1)} = \sum_{s_j=1}^6 |\overline{s}_j\rangle \langle \overline{s}_j|.
+\end{equation}
+As in the previous calculations, in the following we will work at the level of third-order perturbation theory in $t/U$. As a consequence, the ground state will never couple to states with more than two holes at each site. Thus, we can approximate the identity at site $j$ by $\mathbb{I}_j \approx \mathcal{P}_j^{(0)} + \mathcal{P}_j^{(1)} + \mathcal{P}_j^{(2)}$. We can then write the hopping Hamiltonian as $T = T_0 + T_1 + T_{-1}$, where
+\begin{align}
+T_0 &= -\sum_{ij} \sum_{ss'} t_{ij}^{ss'} \left[ \mathcal{P}_i^{(1)} h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(1)} + \mathcal{P}_i^{(2)} h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(2)} \right] \\
+T_1 &= -\sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(1)} \\
+T_{-1} &= -\sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(1)} h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(2)}
+\end{align}
+where we used $h_{js'} \mathcal{P}_j^{(0)} = 0$ and $\mathcal{P}_i^{(0)} h_{is}^{\dagger} = 0$. In matrix notation,
+\begin{align}
+T_0 &= -\sum_{ij} \left[ \mathcal{P}_i^{(1)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)} + \mathcal{P}_i^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(2)} \right] \\
+T_1 &= -\sum_{ij} \mathcal{P}_i^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)} \\
+T_{-1} &= -\sum_{ij} \mathcal{P}_i^{(1)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(2)},
+\end{align}
+where $\tilde{T}_{ij} = \mathbb{I}_2 \otimes T_{ij}$ are $6 \times 6$ matrices.
+
+\subsection{Commutators}
+To generalize the canonical transformation to include Hund's coupling, we need to calculate several commutators between the hopping operators and the atomic Hamiltonian in Eq. (\ref{eq:atomic_V}). This is done in detail in Appendix A. It turns out that all the commutators are given by a simple rule. All we have to do is to split the projection operators for two-hole states into channels with different orbital angular momentum, as in
+\begin{equation}
+\mathcal{P}_i^{(2)} = \mathcal{P}_{i, L=0}^{(2)} + \mathcal{P}_{i, L=1}^{(2)} + \mathcal{P}_{i, L=2}^{(2)}
+\end{equation}
+and compute the change in the eigenvalues of $V_N, V_S$ and $V_L$ for each channel. The general expression is
+\begin{equation}
+\sum_{ij} [V, \mathcal{P}_{i, L}^{(n)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L'}^{(n')}] = \sum_{ij} \Delta V(n, L; n', L') \mathcal{P}_{i, L}^{(n)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L'}^{(n')}.
+\end{equation}
+In particular, we will need
+\begin{equation}
+\sum_{ij} [V, \mathcal{P}_{i, L}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)}] = \Delta E_L \sum_{ij} \mathcal{P}_{i, L}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)},
+\end{equation}
+where
+\begin{equation}
+\Delta E_0 = U + 2J_H, \quad \Delta E_1 = U - 3J_H, \quad \Delta E_2 = U - J_H.
+\end{equation}
+We now define
+\begin{equation}
+S_1^{(+)} = -\sum_{ij} \sum_{L=0}^2 \frac{1}{\Delta E_L} \mathcal{P}_{i, L}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)}
+\end{equation}
+The generator of the canonical transformation to first order in $t/U$ is $S_1 = S_1^{(+)} - S_1^{(-)}$ where $S_1^{(-)} = (S_1^{(+)})^{\dagger}$. Thus, we have $[V, S_1] = T_1 + T_{-1}$.
+
+\subsection{Effective Hamiltonian}
+Before we try to calculate $S_2$, let us use $S_1$ to derive the effective spin Hamiltonian at second order in $t/U$. We can read the upper indices $(\pm)$ in $S_1^{(\pm)}$ as the "charge" of the operator with respect to double occupancies. Projecting into the low-energy subspace with one hole per site, we have (subtracting a constant)
+\begin{align}
+\mathcal{P}_{\text{low}} \tilde{H} \mathcal{P}_{\text{low}} + 5J_H N &= \mathcal{P}_{\text{low}} [S_1^{(+)} - S_1^{(-)}, T_1 + T_{-1}] \mathcal{P}_{\text{low}} + \frac{1}{2} \mathcal{P}_{\text{low}} [S_1^{(+)} - S_1^{(-)}, [S_1^{(+)} - S_1^{(-)}, V]] \mathcal{P}_{\text{low}} \nonumber \\
+&= \frac{1}{2} \mathcal{P}_{\text{low}} \{[S_1^{(+)}, T_{-1}] - [S_1^{(-)}, T_1]\} \mathcal{P}_{\text{low}} \nonumber \\
+&= -\frac{1}{2} \mathcal{P}_{\text{low}} (T_{-1} S_1^{(+)} + S_1^{(-)} T_1) \mathcal{P}_{\text{low}},
+\end{align}
+Thus we only have to calculate $\mathcal{P}_{\text{low}} \tilde{H} \mathcal{P}_{\text{low}} = -\frac{1}{2} \mathcal{P}_{\text{low}} T_{-1} S_1^{(+)} \mathcal{P}_{\text{low}} + \text{h.c.}$ Substituting and combining the projection operators, we obtain
+\begin{equation}
+\mathcal{P}_{\text{low}} \tilde{H} \mathcal{P}_{\text{low}} = -\sum_{ij} \sum_{L=0}^2 \frac{1}{\Delta E_L} \mathcal{P}_{\text{low}} h_j^{\dagger} \tilde{T}_{ji} \mathcal{P}_{i, L}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{\text{low}}.
+\end{equation}
+Let us take matrix elements of the Hamiltonian in the low-energy subspace. Here it suffices to consider a single pair of sites $i, j$. The basis of the low-energy subspace is $\{|s_i, s_j\rangle\}$. We consider the contribution from each channel separately
+\begin{equation}
+\langle s_i', s_j' | \tilde{H}_L | s_i, s_j \rangle \equiv -\frac{1}{\Delta E_L} \sum_{\{s_1, s_2, s_3, s_4\}} (\tilde{T}_{ji})_{s_1 s_2} (\tilde{T}_{ij})_{s_3 s_4} \langle s_i' | h_{is_2} \mathcal{P}_{i,L}^{(2)} h_{is_3}^{\dagger} | s_i \rangle \langle s_j' | h_{js_1}^{\dagger} h_{\overline{j}s_4} | s_j \rangle.
+\end{equation}
+The matrix element on site $j$ is simply $\langle s_j' | h_{js_1}^{\dagger} h_{\overline{j}s_4} | s_j \rangle = \delta_{s_j' s_1} \delta_{s_j s_4}$. We then obtain
+\begin{equation}
+\langle s_i', s_j' | \tilde{H}_L | s_i, s_j \rangle = -\frac{1}{\Delta E_L} \sum_{s_2, s_3} (T_{ji})_{\alpha_j' \alpha_2} (T_{ij})_{\alpha_3 \alpha_j} \delta_{\sigma_j' \sigma_2} \delta_{\sigma_3 \sigma_j} \langle s_i' | h_{i, L}^{(2)} h_{is_3}^{\dagger} | s_i \rangle.
+\end{equation}
+We start with $L=0$ and substitute the projection operator:
+\begin{align}
+\langle s_i' | h_{is_2} \mathcal{P}_{i, L=0}^{(2)} h_{is_3}^{\dagger} | s_i \rangle &= \frac{1}{3} \sum_{\overline{\alpha}} \langle s_i' | h_{is_2} h_{\overline{\alpha}\uparrow}^{\dagger} h_{\overline{\alpha}\downarrow}^{\dagger} | F \rangle \langle F | h_{\overline{\alpha}\downarrow} h_{\overline{\alpha}\uparrow} h_{is_3}^{\dagger} | s_i \rangle \nonumber \\
+&= \frac{1}{3} \sigma_2 \sigma_3 \delta_{\alpha_i' \alpha_2} \delta_{\alpha_i \alpha_3} \delta_{\sigma_2 \overline{\sigma}_i'} \delta_{\sigma_3 \overline{\sigma}_i}
+\end{align}
+with the convention $\sigma = +1, -1 = \uparrow, \downarrow$. Thus,
+\begin{align}
+\langle s_i', s_j' | \tilde{H}_{L=0} | s_i, s_j \rangle &= -\frac{1}{3\Delta E_0} \sum_{s_2, s_3} \sigma_2 \sigma_3 (T_{ji})_{\alpha_j' \alpha_2} (T_{ij})_{\alpha_3 \alpha_j} \delta_{\sigma_j' \sigma_2} \delta_{\sigma_3 \sigma_j} \delta_{\alpha_i' \alpha_2} \delta_{\alpha_i \alpha_3} \delta_{\sigma_2 \overline{\sigma}_i'} \delta_{\sigma_3 \overline{\sigma}_i} \nonumber \\
+&= -\frac{1}{3(U+2J_H)} \sigma_j \sigma_j' (T_{ji})_{\alpha_j' \alpha_i'} (T_{ij})_{\alpha_i \alpha_j} \delta_{\sigma_j' \overline{\sigma}_i'} \delta_{\sigma_j \overline{\sigma}_i}.
+\end{align}
+Projecting this into the $j_{\text{eff}}=1/2$ subspace yields $\mathcal{P}_{1/2} \tilde{H}_{L=0} \mathcal{P}_{1/2} = 0$.
+
+Next, we turn to the $L=1$ channel:
+\begin{align}
+\langle s_i' | h_{is_2} \mathcal{P}_{i, L=1}^{(2)} h_{is_3}^{\dagger} | s_i \rangle &= \frac{1}{2} \langle s_i' | h_{is_2} (\mathcal{P}_i^{(2)} + \mathcal{P}_{i, exc}^{(2)}) h_{is_3}^{\dagger} | s_i \rangle \nonumber \\
+&= \frac{1}{2} (\delta_{\alpha_2 \alpha_3} \delta_{\alpha_i' \alpha_i} - \delta_{\alpha_2 \alpha_i} \delta_{\alpha_i' \alpha_3}) (\delta_{\sigma_2 \sigma_3} \delta_{\sigma_i \sigma_i'} + \delta_{\sigma_2 \sigma_i} \delta_{\sigma_3 \sigma_i'}).
+\end{align}
+Substituting this, we obtain
+\begin{align}
+\langle s_i', s_j' | \tilde{H}_{L=1} | s_i, s_j \rangle &= -\frac{1}{2\Delta E_{L=1}} \sum_{s_2, s_3} (T_{ji})_{\alpha_j' \alpha_2} (T_{ij})_{\alpha_3 \alpha_j} \delta_{\sigma_j' \sigma_2} \delta_{\sigma_3 \sigma_j} \nonumber \\
+&\quad \times (\delta_{\alpha_2 \alpha_3} \delta_{\alpha_i' \alpha_i} - \delta_{\alpha_2 \alpha_i} \delta_{\alpha_i' \alpha_3}) (\delta_{\sigma_2 \sigma_3} \delta_{\sigma_i \sigma_i'} + \delta_{\sigma_2 \sigma_i} \delta_{\sigma_3 \sigma_i'}) \nonumber \\
+&= -\frac{1}{2(U-3J_H)} [(T_{ji} T_{ij})_{\alpha_j' \alpha_j} \delta_{\alpha_i' \alpha_i} - (T_{ji})_{\alpha_j' \alpha_i} (T_{ij})_{\alpha_i' \alpha_j}] (\delta_{\sigma_j' \sigma_j} \delta_{\sigma_i \sigma_i'} + \delta_{\sigma_j' \sigma_i} \delta_{\sigma_j \sigma_i'}).
+\end{align}
+After projection and including a factor of 2 for switching from a sum over sites to a sum over bonds, we obtain for nearest neighbor bonds:
+\begin{equation}
+\mathcal{P}_{1/2} \tilde{H}_{L=1} \mathcal{P}_{1/2} = -\frac{t^2}{3(U-3J_H)} \sum_{\langle ij \rangle_{\gamma}} \left( \sigma_i^{\gamma} \sigma_j^{\gamma} + \frac{7}{3} \right)
+\end{equation}
+
+We still need the contribution from the $L=2$ channel. Since $\mathcal{P}_{i, L=2}^{(2)} = \mathcal{P}_i^{(2)} - \mathcal{P}_{i, L=0}^{(2)} - \mathcal{P}_{i, L=1}^{(2)}$, we have
+\begin{equation}
+\langle s_i' | h_{is_2} \mathcal{P}_{i, L=2}^{(2)} h_{is_3}^{\dagger} | s_i \rangle \sim \delta_{s_2 s_3} \delta_{s_i s_i'} - \delta_{s_2 s_i} \delta_{s_3 s_i'} - \langle s_i' | h_{is_2} \mathcal{P}_{i, L=1}^{(2)} h_{is_3}^{\dagger} | s_i \rangle.
+\end{equation}
+Thus,
+\begin{align}
+\langle s_i', s_j' | \tilde{H}_{L=2} | s_i, s_j \rangle &\sim -\frac{1}{\Delta E_{L=2}} [(T_{ji} T_{ij})_{\alpha_j' \alpha_j} \delta_{\alpha_i \alpha_i'} \delta_{\sigma_j' \sigma_j} \delta_{\sigma_i \sigma_i'} - (T_{ji})_{\alpha_j' \alpha_i} (T_{ij})_{\alpha_i' \alpha_j} \delta_{\sigma_j' \sigma_i} \delta_{\sigma_j \sigma_i'}] \nonumber \\
+&\quad - \frac{\Delta E_{L=1}}{\Delta E_{L=2}} \langle s_i', s_j' | \tilde{H}_{L=1} | s_i, s_j \rangle.
+\end{align}
+The term coming from $\mathcal{P}^{(2)}$ without the lower index $L$ only gives a bond-independent constant $(-2/3)$ after projection into the $j_{\text{eff}}=1/2$ subspace. Therefore,
+\begin{align}
+\mathcal{P}_{1/2} \tilde{H}_{L=2} \mathcal{P}_{1/2} &= -\frac{\Delta E_{L=1}}{\Delta E_{L=2}} \langle s_i', s_j' | \tilde{H}_{L=1} | s_i, s_j \rangle + \text{const.} \nonumber \\
+&= \frac{t^2}{3(U-J_H)} \sum_{\langle ij \rangle_{\gamma}} \sigma_i^{\gamma} \sigma_j^{\gamma} + \text{const.}
+\end{align}
+Combining these, we obtain the effective interaction:
+\begin{align}
+H_{\text{eff}} &= \frac{t^2}{3} \left( -\frac{1}{U-3J_H} + \frac{1}{U-J_H} \right) \sum_{\langle ij \rangle_{\gamma}} \sigma_i^{\gamma} \sigma_j^{\gamma} \nonumber \\
+&= -\frac{8J_H t^2}{3(U-3J_H)(U-J_H)} \sum_{\langle ij \rangle_{\gamma}} S_i^{\gamma} S_j^{\gamma}
+\end{align}
+
+\subsection{Next order in the canonical transformation}
+The $S_2$ term in the generator of the canonical transformation is determined by the condition $[S_1, T_0] + [S_2, V] = 0$. We can use a generalization:
+\begin{align}
+S_2 &= \sum_{ijkl} \sum_{L=0}^2 \sum_{n=1,2} \sum_{L', L''} A(L; n, L', L'') \Big( \mathcal{P}_{i, L}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)} \mathcal{P}_{k, L'}^{(n)} h_k^{\dagger} \tilde{T}_{kl} h_l \mathcal{P}_{l, L''}^{(n)} \nonumber \\
+&\quad + \mathcal{P}_i^{(1)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L}^{(2)} \mathcal{P}_{k, L'}^{(n)} h_k^{\dagger} \tilde{T}_{kl} h_l \mathcal{P}_{l, L''}^{(n)} \Big) - \text{h.c.}
+\end{align}
+Using the commutators, we obtain the condition
+\begin{equation}
+A(L; n, L', L'') = \frac{1}{\Delta E_L [\Delta E_L + \Delta V(n, L'; n, L'')]}.
+\end{equation}
+
+\subsection{Effective charge density operator}
+We simplify the expression for $\delta n_l$, keeping only the third-order term:
+\begin{equation}
+\delta n_l = -\mathcal{P}_{\text{low}} S_2^{(-)} [n_l, S_1^{(+)}] \mathcal{P}_{\text{low}} + \text{h.c.}
+\end{equation}
+We have the commutator:
+\begin{equation}
+[n_l, S_1^{(+)}] = -\sum_j \sum_L \frac{1}{\Delta E_L} \left( \mathcal{P}_{l, L}^{(2)} h_l^{\dagger} \tilde{T}_{lj} h_j \mathcal{P}_j^{(1)} - \mathcal{P}_{j, L}^{(2)} h_j^{\dagger} \tilde{T}_{jl} h_l \mathcal{P}_l^{(1)} \right).
+\end{equation}
+Identifying the position indices and performing the sums over spin indices, we write the result in terms of local spin operators. For a triangle with bonds $jl \in \mathcal{B}_\alpha$, $kl \in \mathcal{B}_\beta$, $jk \in \mathcal{B}_\gamma$:
+\begin{align}
+\delta n_{l, (jk)} &= \frac{8t^2 t'}{U^3} \Big[ a S_j^\alpha S_l^\alpha + b S_j^\beta S_l^\beta + c S_j^\gamma S_l^\gamma + a S_k^\beta S_l^\beta + b S_k^\alpha S_l^\alpha + c S_k^\gamma S_l^\gamma \nonumber \\
+&\quad - 2a S_j^\gamma S_k^\gamma - (b+c)(S_j^\alpha S_k^\alpha + S_j^\beta S_k^\beta) \Big]
+\end{align}
+where $\eta = J_H/U$, and:
+\begin{equation}
+a = \frac{\eta(3 - 10\eta + 11\eta^2)}{18(1-\eta)^3(1-3\eta)^3}, \quad b = \frac{\eta(5 - 20\eta + 21\eta^2)}{18(1-\eta)^3(1-3\eta)^3}, \quad c = -\frac{\eta(5 - 18\eta + 17\eta^2)}{18(1-\eta)^3(1-3\eta)^3}.
+\end{equation}
+
+\newpage
+\appendix
+\renewcommand{\theequation}{A\arabic{equation}}
+\setcounter{equation}{0}
+
+\section{Calculation of the commutators for the Hubbard-Kanamori model}
+
+We start by collecting some useful commutators:
+\begin{align}
+[h_{is}, h_j^{\dagger} B h_j] &= \delta_{ij} \sum_{s'} B_{ss'} h_{is'} = \delta_{ij} (B h_i)_s, \label{eq:A1} \\
+[h_{is}^{\dagger}, h_j^{\dagger} B h_j] &= -\delta_{ij} \sum_{s'} h_{is'}^{\dagger} B_{s's} = -\delta_{ij} (h_i^{\dagger} B)_s, \label{eq:A2} \\
+[h_i^{\dagger} A h_i, h_j^{\dagger} B h_j] &= \delta_{ij} h_i^{\dagger} [A, B] h_i. \label{eq:A3}
+\end{align}
+
+Let us consider each of the three terms in the atomic Hamiltonian separately. The first term is the usual Coulomb repulsion:
+\begin{align}
+V_N &= \frac{U-3J_H}{2} \sum_i (\overline{N}_i-1)^2 = \frac{U-3J_H}{2} \sum_i \left(\sum_s n_{is} - 1\right)^2 \nonumber \\
+&= \frac{U-3J_H}{2} \sum_i \sum_{s' \neq s} n_{is} n_{is'} = \frac{U-3J_H}{2} \sum_{i, s} n_{is} n_{i\overline{s}}, \label{eq:A4}
+\end{align}
+where we used that the total number of holes is equal to the number of sites to cancel out the constant term in the energy. Using $[\mathcal{P}_j^{(n)}, n_{ks}] = 0$, we compute the commutator with $T_1$:
+\begin{align}
+[T_1, V_N] &= -\frac{U-3J_H}{2} \sum_{ks''} \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} [h_{is}^{\dagger} h_{js'}, n_{ks''} n_{k\overline{s''}}] \mathcal{P}_j^{(1)} \nonumber \\
+&= -\frac{U-3J_H}{2} \sum_{ks''} \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} h_{is}^{\dagger} h_{js'} \nonumber \\
+&\quad \times [-\delta_{ik}\delta_{ss''} n_{k\overline{s''}} - \delta_{ik}(1-\delta_{ss''}) n_{ks''} + \delta_{jk}\delta_{s's''} n_{k\overline{s''}} + \delta_{jk}(1-\delta_{s's''}) n_{ks''}] \mathcal{P}_j^{(1)} \nonumber \\
+&= (U-3J_H) \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} h_{is}^{\dagger} h_{js'} (n_{i\overline{s}} - n_{j\overline{s}'}) \mathcal{P}_j^{(1)} \nonumber \\
+&= (U-3J_H) \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(1)}. \label{eq:A5}
+\end{align}
+Here we used the identities $\mathcal{P}_i^{(2)} h_{is}^{\dagger} n_{i\overline{s}} = \mathcal{P}_i^{(2)} n_{i\overline{s}} h_{is}^{\dagger} = \mathcal{P}_i^{(2)} h_{is}^{\dagger}$ and $h_{js'} n_{j\overline{s}'} \mathcal{P}_j^{(1)} = n_{j\overline{s}'} h_{js'} \mathcal{P}_j^{(1)} = 0$. Thus, we obtain $[V_N, T_1] = (U-3J_H) T_1$. The commutator with the other terms gives:
+\begin{equation}
+[V_N, T_m] = m(U-3J_H) T_m, \quad m = 0, \pm 1. \label{eq:A8}
+\end{equation}
+
+Now consider the second term:
+\begin{equation}
+V_S = -2J_H \sum_i \bm{S}_i^2. \label{eq:A9}
+\end{equation}
+We compute the commutator with $T_1$:
+\begin{equation}
+[T_1, V_S] = 2J_H \sum_{k, a} \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \mathcal{P}_i^{(2)} [h_{is}^{\dagger} h_{js'}, S_k^a S_k^a] \mathcal{P}_j^{(1)}. \label{eq:A10}
+\end{equation}
+For short, I will denote the spin matrices by $S^a = \frac{1}{2} \sigma^a \otimes \mathbb{I}_3$, so that $S_i^a = h_i^{\dagger} S^a h_i$. The commutator is:
+\begin{align}
+[h_{is}^{\dagger} h_{js'}, S_k^a S_k^a] &= \delta_{jk} h_{is}^{\dagger} S_j^a (S^a h_j)_{s'} + \delta_{jk} h_{is}^{\dagger} (S^a h_j)_{s'} S_j^a \nonumber \\
+&\quad - \delta_{ik} (h_i^{\dagger} S^a)_s S_i^a h_{js'} - \delta_{ik} S_i^a (h_i^{\dagger} S^a)_s h_{js'}. \label{eq:A11}
+\end{align}
+We can use the projectors to simplify the result. For instance,
+\begin{equation}
+S_j^a (S^a h_j)_{s'} \mathcal{P}_j^{(1)} = \sum_{s_1 s_2 s_3} (S^a)_{s_1 s_2} (S^a)_{s' s_3} h_{js_1}^{\dagger} h_{js_2} h_{js_3} \mathcal{P}_j^{(1)} = 0, \label{eq:A12}
+\end{equation}
+\begin{align}
+(S^a h_j)_{s'} S_j^a \mathcal{P}_j^{(1)} &= \sum_{s_1 s_2 s_3} (S^a)_{s_1 s_2} (S^a)_{s' s_3} h_{js_1}^{\dagger} h_{js_2} \mathcal{P}_j^{(1)} \nonumber \\
+&= \sum_{s_1 s_2} (S^a)_{s_1 s_2} (S^a)_{s' s_1} h_{js_1} h_{js_1}^{\dagger} \mathcal{P}_j^{(0)} h_{js_2} \nonumber \\
+&= \sum_{s_1 s_2} (S^a)_{s_1 s_2} (S^a)_{s' s_1} h_{js_2} \mathcal{P}_j^{(1)} \nonumber \\
+&= \frac{1}{4} h_{js'} \mathcal{P}_j^{(1)} \label{eq:A13}
+\end{align}
+where we used $(S^a)^2 = \frac{1}{4} \mathbb{I}_6$. The other terms in Eq. (\ref{eq:A11}) are more complicated. Here we can perform the sum over the spin component:
+\begin{align}
+\sum_a (S^a)_{s_1 s_2} (S^a)_{s_3 s_4} &= \frac{1}{4} \delta_{\alpha_1 \alpha_2} \delta_{\alpha_3 \alpha_4} \sum_a (\sigma^a)_{\sigma_1 \sigma_2} (\sigma^a)_{\sigma_3 \sigma_4} \nonumber \\
+&= \frac{1}{4} \delta_{\alpha_1 \alpha_2} \delta_{\alpha_3 \alpha_4} (2\delta_{\sigma_1 \sigma_4} \delta_{\sigma_2 \sigma_3} - \delta_{\sigma_1 \sigma_2} \delta_{\sigma_3 \sigma_4}). \label{eq:A14}
+\end{align}
+We then have
+\begin{align}
+\mathcal{P}_i^{(2)} \sum_a (h_i^{\dagger} S^a)_s S_i^a &= \frac{1}{4} \mathcal{P}_i^{(2)} \sum_{\alpha_1 \alpha_2 \alpha_3} \sum_{\sigma_1 \sigma_2 \sigma_3} \delta_{\alpha_1 \alpha} \delta_{\alpha_2 \alpha_3} (2\delta_{\sigma_1 \sigma_3} \delta_{\sigma_2 \sigma} - \delta_{\sigma_1 \sigma} \delta_{\sigma_2 \sigma_3}) h_{i\alpha_1 \sigma_1}^{\dagger} h_{i\alpha_2 \sigma_2}^{\dagger} h_{i\alpha_3 \sigma_3} \nonumber \\
+&= \frac{1}{2} \mathcal{P}_i^{(2)} \sum_{\alpha_3 \sigma_3} h_{i\alpha\sigma_3}^{\dagger} h_{i\alpha_3 \sigma}^{\dagger} h_{i\alpha_3 \sigma_3} - \frac{1}{4} \mathcal{P}_i^{(2)} h_{is}^{\dagger}. \label{eq:A15}
+\end{align}
+We need to rewrite the operator that appears in the first term:
+\begin{align}
+\mathcal{P}^{(2)} \sum_{\alpha_3 \sigma_3} h_{\alpha\sigma_3}^{\dagger} h_{\alpha_3 \sigma}^{\dagger} h_{\alpha_3 \sigma_3} &= \sum_{\alpha_3 \sigma_3} \sum_{\alpha' \sigma'} \sum_{\alpha'' \sigma''} |\alpha' \sigma'; \alpha'' \sigma''\rangle \langle F| (\delta_{\alpha_3 \sigma, \alpha' \sigma'} \delta_{\alpha \sigma_3, \alpha'' \sigma''} - \delta_{\alpha_3 \sigma, \alpha'' \sigma''} \delta_{\alpha \sigma_3, \alpha' \sigma'}) h_{\alpha_3 \sigma_3} \nonumber \\
+&= \sum_{\alpha' \sigma'} \sum_{\alpha'' \sigma''} |\alpha' \sigma'; \alpha'' \sigma''\rangle \langle \alpha' \sigma''; \alpha'' \sigma'| h_{\alpha \sigma}^{\dagger} \nonumber \\
+&= \mathcal{P}_{exc}^{(2)} h_s^{\dagger} \label{eq:A16}
+\end{align}
+where we defined the projection operator with exchange of the spin states of the two holes:
+\begin{equation}
+\mathcal{P}_{exc}^{(2)} = \mathcal{P}^{(2)} \left(\frac{1}{2} + 2\bm{S}_1 \cdot \bm{S}_2\right) \label{eq:A17}
+\end{equation}
+From Eq. (\ref{eq:A15}), we have
+\begin{equation}
+\mathcal{P}_i^{(2)} \sum_a (h_i^{\dagger} S^a)_s S_i^a = \left( \frac{1}{2} \mathcal{P}_{i, \text{exc}}^{(2)} - \frac{1}{4} \mathcal{P}_i^{(2)} \right) h_{is}^{\dagger}. \label{eq:A18}
+\end{equation}
+The last term in Eq. (\ref{eq:A11}) involves
+\begin{align}
+\mathcal{P}_i^{(2)} \sum_a S_i^a (h_i^{\dagger} S^a)_s &= \frac{1}{4} \mathcal{P}_i^{(2)} \sum_{\alpha_3 \sigma_3} (2 h_{i\alpha_3 \sigma}^{\dagger} h_{i\alpha_3 \sigma_3} h_{i\alpha \sigma_3}^{\dagger} - h_{i\alpha_3 \sigma_3}^{\dagger} h_{i\alpha_3 \sigma_3} h_{i\alpha \sigma}^{\dagger}) \nonumber \\
+&= \frac{1}{2} \mathcal{P}_i^{(2)} \sum_{\alpha_3 \sigma_3} h_{i\alpha_3 \sigma}^{\dagger} h_{i\alpha_3 \sigma_3} h_{i\alpha \sigma_3}^{\dagger} - \frac{1}{2} \mathcal{P}_i^{(2)} h_{is}^{\dagger}. \label{eq:A19}
+\end{align}
+This time we get
+\begin{align}
+\mathcal{P}^{(2)} \sum_{\alpha_3 \sigma_3} h_{\alpha_3 \sigma}^{\dagger} h_{\alpha_3 \sigma_3} h_{\alpha \sigma_3}^{\dagger} &= 2\mathcal{P}^{(2)} h_{\alpha \sigma}^{\dagger} + \mathcal{P}^{(2)} \sum_{\alpha_3 \sigma_3} h_{\alpha \sigma_3}^{\dagger} h_{\alpha_3 \sigma}^{\dagger} h_{\alpha_3 \sigma_3} \nonumber \\
+&= (2\mathcal{P}^{(2)} + \mathcal{P}_{exc}^{(2)}) h_s^{\dagger} \label{eq:A20}
+\end{align}
+Thus, from Eq. (\ref{eq:A19}),
+\begin{align}
+\mathcal{P}_i^{(2)} \sum_a S_i^a (h_i^{\dagger} S^a)_s &= \frac{1}{2} (\mathcal{P}_i^{(2)} + \mathcal{P}_{i, \text{exc}}^{(2)}) h_{is}^{\dagger} \nonumber \\
+&= \mathcal{P}_{i, \text{trip}}^{(2)} h_{is}^{\dagger} \label{eq:A21}
+\end{align}
+where $\mathcal{P}_{i, \text{trip}}^{(2)} = \mathcal{P}_i^{(2)} (\frac{3}{4} + \bm{S}_1 \cdot \bm{S}_2)$ is the projection operator for the triplet state. Adding up the different contributions, we find
+\begin{align}
+[V_S, T_1] &= -2J_H \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \left[ \frac{3}{4}\mathcal{P}_i^{(2)} - \left(\frac{1}{2}\mathcal{P}_{i, \text{exc}}^{(2)} - \frac{1}{4}\mathcal{P}_i^{(2)}\right) - \frac{1}{2}(\mathcal{P}_i^{(2)} + \mathcal{P}_{i, \text{exc}}^{(2)}) \right] h_{is}^{\dagger} h_{js'} \mathcal{P}_j^{(1)} \nonumber \\
+&= 4J_H \sum_{ij} \mathcal{P}_i^{(2)} (\bm{S}_1 \cdot \bm{S}_2) h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)} \nonumber \\
+&= -J_H \sum_{ij} (3\mathcal{P}_{i, \text{sing}}^{(2)} - \mathcal{P}_{i, \text{trip}}^{(2)}) h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)} \label{eq:A23}
+\end{align}
+where $\mathcal{P}_{i, \text{sing}}^{(2)} = \mathcal{P}_i^{(2)} (\frac{1}{4} - \bm{S}_1 \cdot \bm{S}_2)$ projects onto the singlet state. Since $T_{-1} = (T_1)^{\dagger}$, we have immediately
+\begin{equation}
+[V_S, T_{-1}] = J_H \sum_{ij} \mathcal{P}_i^{(1)} h_i^{\dagger} \tilde{T}_{ij} h_j (3\mathcal{P}_{j, \text{sing}}^{(2)} - \mathcal{P}_{j, \text{trip}}^{(2)}). \label{eq:A25}
+\end{equation}
+Now the commutator with $T_0$:
+\begin{equation}
+[T_0, V_S] = 2J_H \sum_{k, a} \sum_{ij} \sum_{ss'} t_{ij}^{ss'} \left( \mathcal{P}_i^{(1)} [h_{is}^{\dagger} h_{js'}, S_k^a S_k^a] \mathcal{P}_j^{(1)} + \mathcal{P}_i^{(2)} [h_{is}^{\dagger} h_{js'}, S_k^a S_k^a] \mathcal{P}_j^{(2)} \right). \label{eq:A26}
+\end{equation}
+The factors we haven't calculated yet are:
+\begin{align}
+\mathcal{P}_i^{(1)} \sum_a (h_i^{\dagger} S^a)_s S_i^a &= 0, \label{eq:A27} \\
+\mathcal{P}_i^{(1)} \sum_a S_i^a (h_i^{\dagger} S^a)_s &= \frac{3}{4} \mathcal{P}_i^{(1)} h_{is}^{\dagger} \label{eq:A28} \\
+S_j^a (S^a h_j)_{s'} \mathcal{P}_j^{(2)} &= h_{js'} \left( \frac{1}{2} \mathcal{P}_{j, \text{exc}}^{(2)} - \frac{1}{4} \mathcal{P}_j^{(2)} \right) \label{eq:A29} \\
+(S^a h_j)_{s'} S_j^a \mathcal{P}_j^{(2)} &= \frac{1}{2} h_{js'} (\mathcal{P}_{j, \text{exc}}^{(2)} + \mathcal{P}_j^{(2)}). \label{eq:A30}
+\end{align}
+The contributions in the term with $\mathcal{P}_j^{(1)}$ cancel out, and we obtain
+\begin{equation}
+[V_S, T_0] = -2J_H \sum_{ij} \left( \mathcal{P}_i^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, \text{exc}}^{(2)} - \mathcal{P}_{i, \text{exc}}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(2)} \right). \label{eq:A31}
+\end{equation}
+
+Finally, consider the third term: $V_L = -\frac{J_H}{2} \sum_k L_k^a L_k^a$. The nonvanishing terms that involve $\mathcal{P}^{(1)}$ are:
+\begin{align}
+\sum_a (L^a h_j)_{s'} L_j^a \mathcal{P}_j^{(1)} &= 2h_{js'} \mathcal{P}_j^{(1)}, \label{eq:A37} \\
+\mathcal{P}_i^{(1)} \sum_a L_i^a (h_i^{\dagger} L^a)_s &= 2\mathcal{P}_i^{(1)} h_{is}^{\dagger} \label{eq:A38}
+\end{align}
+Let us calculate the analog of Eq. (\ref{eq:A15}):
+\begin{align}
+\mathcal{P}_i^{(2)} \sum_a (h_i^{\dagger} L^a)_s L_i^a &= \mathcal{P}_i^{(2)} \sum_{\alpha_3 \sigma_3} h_{i\alpha_3 \sigma}^{\dagger} h_{i\alpha \sigma_3}^{\dagger} h_{i\alpha_3 \sigma_3} - \mathcal{P}_i^{(2)} \sum_{\alpha_2 \sigma_2} h_{i\alpha_2 \sigma}^{\dagger} h_{i\alpha_2 \sigma_2}^{\dagger} h_{i\alpha \sigma_2} \nonumber \\
+&= -\mathcal{P}_{i, \text{exc}}^{(2)} h_{is}^{\dagger} - \mathcal{P}_i^{(2)} \sum_{\alpha_2} h_{i\alpha_2 \sigma}^{\dagger} h_{i\alpha_2 \overline{\sigma}}^{\dagger} h_{i\alpha \overline{\sigma}}. \label{eq:A40}
+\end{align}
+I will just use the algebra to rewrite the last term:
+\begin{equation}
+\mathcal{P}^{(2)} \sum_{\alpha_2} h_{\alpha_2 \sigma}^{\dagger} h_{\alpha_2 \overline{\sigma}}^{\dagger} h_{\alpha \overline{\sigma}} = \frac{1}{2} \mathcal{P}^{(2)} \left( \sum_{\alpha_2 \alpha_3} \sum_{\sigma'} h_{\alpha_2 \sigma'}^{\dagger} h_{\alpha_2 \overline{\sigma}'}^{\dagger} h_{\alpha_3 \overline{\sigma}'} h_{\alpha_3 \sigma'} \right) h_{\alpha \sigma}^{\dagger}. \label{eq:A41}
+\end{equation}
+The operator between parenthesis is known in the literature as "pair hopping". This is equivalent to
+\begin{equation}
+\mathcal{P}^{(2)} \sum_{\alpha_2} h_{\alpha_2 \sigma}^{\dagger} h_{\alpha_2 \overline{\sigma}}^{\dagger} h_{\alpha \overline{\sigma}} = \mathcal{P}^{(2)} [(\bm{L}_1 \cdot \bm{L}_2)^2 - 1] h_{\alpha \sigma}^{\dagger} \equiv 3\mathcal{P}_{ph}^{(2)} h_{\alpha \sigma}^{\dagger} \label{eq:A42}
+\end{equation}
+where
+\begin{equation}
+\mathcal{P}_{ph}^{(2)} = \frac{1}{3} \mathcal{P}^{(2)} [(\bm{L}_1 \cdot \bm{L}_2)^2 - 1]. \label{eq:A43}
+\end{equation}
+Since $\bm{L}_1^2 = \bm{L}_2^2 = 2$, we obtain $\bm{L}_1 \cdot \bm{L}_2 = \frac{1}{2}L(L+1) - 2$. Thus, the operator projects onto the $L=0$ state, and we write $\mathcal{P}_{ph}^{(2)} = \mathcal{P}_{L=0}^{(2)}$. Note that the $L=2$ states are also in the singlet channel, whereas the triplet states must be in an $L=1$ orbital state:
+\begin{equation}
+\mathcal{P}_{i, \text{sing}}^{(2)} = \mathcal{P}_{i, L=0}^{(2)} + \mathcal{P}_{i, L=2}^{(2)}, \quad \mathcal{P}_{i, \text{trip}}^{(2)} = \mathcal{P}_{i, L=1}^{(2)}. \label{eq:A48}
+\end{equation}
+Summarizing, we obtain
+\begin{equation}
+\mathcal{P}_i^{(2)} \sum_a (h_i^{\dagger} L^a)_s L_i^a = -(\mathcal{P}_{i, L=1}^{(2)} - \mathcal{P}_{i, L=2}^{(2)} + 2\mathcal{P}_{i, L=0}^{(2)}) h_{is}^{\dagger} \label{eq:A49}
+\end{equation}
+and its hermitian conjugate
+\begin{equation}
+\sum_a L_j^a (L^a h_j)_{s'} \mathcal{P}_j^{(2)} = -h_{js'} (\mathcal{P}_{j, L=1}^{(2)} - \mathcal{P}_{j, L=2}^{(2)} + 2\mathcal{P}_{j, L=0}^{(2)}). \label{eq:A50}
+\end{equation}
+The last missing term is
+\begin{equation}
+\mathcal{P}_i^{(2)} \sum_a L_i^a (h_i^{\dagger} L^a)_s = (\mathcal{P}_{i, L=1}^{(2)} + 3\mathcal{P}_{i, L=2}^{(2)}) h_{is}^{\dagger}. \label{eq:A51}
+\end{equation}
+Now we can combine these results to obtain the commutators. For $T_1$, we find
+\begin{equation}
+[V_L, T_1] = -J_H \sum_{ij} (2\mathcal{P}_{i, L=0}^{(2)} + \mathcal{P}_{i, L=1}^{(2)} - \mathcal{P}_{i, L=2}^{(2)}) h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_j^{(1)}. \label{eq:A54}
+\end{equation}
+In the commutator between $T_0$ and $V_L$, the terms with $\mathcal{P}^{(1)}$ on both sides cancel out. We obtain
+\begin{align}
+[V_L, T_0] &= -J_H \sum_{ij} (3\mathcal{P}_{i, L=0}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=2}^{(2)} - 3\mathcal{P}_{i, L=2}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=0}^{(2)} - \mathcal{P}_{i, L=1}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=0}^{(2)} \nonumber \\
+&\quad + \mathcal{P}_{i, L=0}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=1}^{(2)} + 2\mathcal{P}_{i, L=1}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=2}^{(2)} - 2\mathcal{P}_{i, L=2}^{(2)} h_i^{\dagger} \tilde{T}_{ij} h_j \mathcal{P}_{j, L=1}^{(2)}). \label{eq:A57}
+\end{align}
+
+\end{document}
