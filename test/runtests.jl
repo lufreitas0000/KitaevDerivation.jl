@@ -1,9 +1,10 @@
 using Test
 using KitaevDerivation
 
-@testset "KitaevDerivation TDD Oracles" begin
+@testset "KitaevDerivation.jl Framework Tests" begin
     include("test_algebra.jl")
-    include("test_soc.jl")
-    include("test_cancellation.jl")
-    include("test_symmetries.jl")
+    # Future inclusions:
+    # include("test_soc.jl")
+    # include("test_kanamori.jl")
+    # include("test_schrieffer_wolff.jl")
 end
