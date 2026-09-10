@@ -1,213 +1,423 @@
 ---
 name: repair-mode
-description: Controlled implementation and verification workflow following a completed scientific diagnosis.
+description: Autonomous controlled implementation and verification workflow for an approved scientific repair scope.
 ---
 
 # Repair Mode
 
 ## Purpose
 
-Repair Mode performs controlled modifications after a diagnostic has identified concrete problems.
+Repair Mode allows autonomous implementation of a previously diagnosed
+scientific/software problem.
 
-Repair Mode MUST NOT begin merely because a problem is discovered.
+The objective is to delegate implementation and verification without requiring
+the human to approve every routine file edit.
 
-It requires explicit user authorization or an unambiguous request to repair/fix the diagnosed target.
+Autonomy is granted within an explicitly defined repair scope.
 
-## Activation
+The agent MUST stop and request human intervention only when it reaches a
+boundary defined below.
 
-Activate this workflow when the user asks to:
+---
+
+# 1. Activation
+
+Activate Repair Mode when the user explicitly asks to:
 
 - start repair mode;
-- fix the diagnosed phase;
-- implement the proposed repairs;
-- repair a specific module after diagnosis.
+- repair/fix a diagnosed phase;
+- implement the diagnostic findings;
+- proceed with the approved repair.
 
 Examples:
 
-"Start repair mode for Phase 2A."
+"Start repair mode for Phase 1."
 
-"Proceed with the Phase-2A repairs."
+"Proceed with the Phase-1 repair."
 
-"Fix the issues identified in the diagnostic."
+"Fix the issues identified in the Phase-1 diagnostic."
 
-## Preconditions
+If no diagnostic exists, perform a diagnostic before making broad changes.
 
-Before modifying files:
+---
 
-1. identify the target phase;
-2. locate the most recent diagnostic findings;
-3. confirm the proposed changes;
-4. restrict changes to the affected modules unless dependency changes are necessary.
+# 2. Establish the Repair Scope
 
-If no diagnosis exists, perform a diagnostic first rather than immediately making broad changes.
+Before making modifications, determine the repair scope from:
 
-## Repair Procedure
+1. the user's request;
+2. the latest diagnostic findings;
+3. AGENTS.md;
+4. the relevant phase definition;
+5. existing tests and module dependencies.
 
-### 1. Preserve scientific boundaries
+Create an internal repair scope containing:
 
-Never:
+- approved source files;
+- approved test files;
+- approved configuration files;
+- approved types of changes;
+- explicit forbidden operations.
 
-- weaken mathematical or physical oracles;
-- alter tests merely to make implementation pass;
-- introduce dense symbolic d4 matrices;
-- introduce dense symbolic diagonalization;
-- expand unconstrained Schrieffer-Wolff fermionic products;
-- replace exact symbolic identities with numerical approximations;
-- silently change physical conventions.
+The scope should be reported briefly at the beginning of Repair Mode.
 
-### 2. Delegate implementation
+Do NOT ask for approval merely to establish this scope when it is directly
+specified by the user's repair request and the diagnostic.
 
-When specialist agents are available:
+---
 
-- physics-implementer:
-  modify implementation;
+# 3. Autonomous Work Inside Scope
 
-- test-generator:
-  add or correct mathematical tests;
+Once the repair scope is established, the implementation agents may work
+AUTONOMOUSLY inside that scope.
 
-- execution-worker:
-  execute the relevant test suite;
+Routine edits do NOT require human approval.
 
-- physics-auditor:
-  independently audit the resulting physics;
+The following operations are normally AUTO-APPROVED when they remain inside
+the repair scope:
 
-- complexity-auditor:
-  independently check symbolic complexity.
+- fixing syntax errors;
+- fixing obvious typographical errors;
+- correcting imports;
+- adding required dependencies;
+- adding comments;
+- adding or improving docstrings;
+- formatting code;
+- implementing functions specified by the diagnostic;
+- correcting implementation bugs identified by the diagnostic;
+- adding mathematical tests;
+- adding regression tests;
+- correcting tests that are demonstrably incorrect;
+- adding test fixtures;
+- running Julia tests;
+- running static analysis;
+- running formatting checks;
+- inspecting Git status/diff;
+- reading source files;
+- reading tests;
+- creating temporary diagnostic files;
+- performing non-destructive DVC operations required by the workflow.
 
-Avoid having one agent both implement and independently validate its own physics.
+Do not stop for approval for each individual Edit.
 
-### 3. Minimal changes
+---
 
-Prefer:
+# 4. Scientific Boundaries
 
-- smallest correct implementation change;
-- preservation of public interfaces;
-- localized modifications;
-- explicit mathematical names;
-- type-stable symbolic representations.
+Autonomy does NOT imply permission to change scientific meaning.
 
-Do not refactor unrelated modules during a phase repair.
+The agent MUST STOP and request human intervention before making any of the
+following changes unless the diagnostic explicitly included them:
 
-### 4. Test hierarchy
+- changing a physical convention;
+- changing basis conventions;
+- changing sign conventions;
+- changing normalization conventions;
+- changing the definition of an operator;
+- changing the definition of a projector;
+- weakening or deleting a physical oracle;
+- replacing an exact symbolic identity with a numerical approximation;
+- changing a mathematical invariant;
+- introducing a new approximation;
+- changing the representation of a physical Hilbert space;
+- changing analytical Kanamori energies;
+- changing the meaning of P_[L=0], P_[L=1], or P_[L=2];
+- introducing dense symbolic d4 matrices;
+- introducing symbolic diagonalization of the 15x15 d4 space;
+- expanding unconstrained Schrieffer-Wolff fermionic operator products.
 
-After modifications run, in order:
+When such a boundary is reached:
 
-1. targeted tests;
-2. phase-level tests;
-3. complete repository tests when practical.
+1. stop the affected operation;
+2. explain why the change is necessary;
+3. show the proposed change;
+4. request human authorization.
 
-A passing test suite is necessary but not sufficient.
+Do not continue by silently choosing a convention.
 
-### 5. Mathematical verification
+---
 
-Verify the phase-specific physical oracles.
+# 5. File-Scope Boundary
 
-Phase 1:
-- CAR;
-- nilpotency/anticommutation;
-- projector completeness;
-- projector orthogonality;
-- projector idempotency.
+Agents may autonomously modify files explicitly included in the repair scope.
 
-Phase 2A:
-- jeff=1/2 construction;
-- jeff=3/2 construction;
-- exact energy gap 3λ/2.
+If a required change appears in a file outside the scope:
 
-Phase 2B:
-- P_[L=0], P_[L=1], P_[L=2];
-- exact Kanamori energies:
-  ΔE0 = U + 2 J_H
-  ΔE1 = U − 3 J_H
-  ΔE2 = U − J_H.
+1. determine whether it is genuinely required;
+2. do NOT modify it immediately;
+3. report the file and reason;
+4. request authorization to extend the scope.
 
-Phase 3:
-- J_H = 0 Jackeli-Khaliullin cancellation;
-- λ_SOC → 0 gives K → 0;
-- z-bond C2 symmetry:
-  J_xx = J_yy.
+Example:
 
-Phase 4:
-- Lean consistency;
-- formal invariants;
-- bond-distortion limits;
-- local-potential limits.
+Phase 1 repair scope:
 
-### 6. Complexity verification
+    src/BasisAndAlgebra.jl
+    test/test_algebra.jl
+    Project.toml
 
-Check that the repair does not introduce:
+If implementation discovers that:
 
-- dense symbolic matrix diagonalization;
-- uncontrolled expansion;
-- symbolic expression blow-up;
-- unnecessary repeated simplification;
-- computationally expensive intermediate representations.
+    src/TwoSiteKanamori.jl
 
-### 7. Final audit
-
-After implementation:
-
-1. run tests;
-2. run physics audit;
-3. run complexity audit;
-4. inspect Git diff;
-5. check that only intended files changed.
+must change, do not silently edit it.
 
 Report:
 
-- files changed;
-- mathematical changes;
-- tests added/changed;
-- test results;
-- physics audit;
-- complexity audit;
-- remaining concerns.
+    "Phase-1 repair requires a change to TwoSiteKanamori.jl because ..."
 
-## Git policy
+Then request authorization to extend the scope.
 
-Repair Mode does NOT automatically commit.
+This prevents accidental repository-wide refactoring.
 
-Do not:
+---
 
-- git reset --hard;
-- git clean -f;
-- force-push;
-- delete branches;
-- rewrite history.
+# 6. Test Policy
 
-The human user controls scientific commits.
+Tests are part of the scientific contract.
 
-The final response should provide the Git diff/status needed for human review.
+Agents may autonomously:
 
-## DVC policy
+- add missing tests;
+- add regression tests;
+- correct tests whose assumptions contradict the documented mathematics;
+- run targeted tests;
+- run phase-level tests;
+- run the full test suite.
 
-Agents may use:
+Agents MUST NOT weaken an oracle merely to make a failing implementation pass.
 
-- dvc add;
-- dvc push;
+If an existing test appears mathematically wrong, stop and report:
 
-when required by the repository workflow.
+- current test;
+- mathematical reason it appears wrong;
+- proposed replacement;
+- expected consequence.
 
-Agents must not use:
+Do not silently weaken or delete the test.
 
-- dvc gc;
-- dvc destroy;
-- destructive DVC removal operations.
+---
 
-Never access credentials in:
+# 7. Mathematical Oracles
 
-.dvc/config.local
+Preserve and enforce the following project invariants.
 
-## Completion Boundary
+## Phase 1
 
-Repair Mode ends after:
+CAR:
 
-- implementation;
-- tests;
-- independent physics audit;
-- complexity audit;
-- Git diff review.
+    {cα, cβ†} = δαβ
+    {cα, cβ} = 0
+    {cα†, cβ†} = 0
 
-Do not automatically commit.
+Projectors:
 
-The user decides when the scientific state is ready to commit.
+    P_i² = P_i
+
+    P_i P_j = 0     for i ≠ j
+
+Do not replace exact symbolic identities with approximate numerical checks
+when an exact symbolic check is possible.
+
+## Phase 2A
+
+Verify the jeff=1/2 and jeff=3/2 construction and the exact energy gap:
+
+    ΔE = 3λ/2
+
+## Phase 2B
+
+Use abstract multiplet projectors:
+
+    P_[L=0]
+    P_[L=1]
+    P_[L=2]
+
+and analytical energies:
+
+    ΔE0 = U + 2 J_H
+    ΔE1 = U - 3 J_H
+    ΔE2 = U - J_H
+
+Do not construct or diagonalize dense symbolic 15x15 d4 matrices.
+
+## Phase 3
+
+Preserve:
+
+    J_H = 0  =>  J = K = 0
+
+    λ_SOC → 0  =>  K → 0
+
+and for a z bond:
+
+    J_xx = J_yy
+
+Do not expand unconstrained Schrieffer-Wolff operator products.
+
+---
+
+# 8. Complexity Policy
+
+Agents may optimize implementation autonomously when the optimization is
+semantics-preserving.
+
+Agents MUST stop before introducing:
+
+- dense symbolic matrices;
+- symbolic 15x15 diagonalization;
+- uncontrolled expression expansion;
+- uncontrolled fermionic operator products;
+- exponential expression-tree growth;
+- unnecessary repeated symbolic simplification.
+
+Use sequential state action, normal ordering, and immediate projection when
+required by the project architecture.
+
+If the only apparent solution violates these constraints, stop and report the
+problem.
+
+---
+
+# 9. Git Policy
+
+Git inspection is allowed.
+
+Agents may autonomously run:
+
+    git status
+    git diff
+    git log
+
+Agents MUST NOT automatically:
+
+    git commit
+    git push
+    git reset --hard
+    git clean -f
+    git checkout -- <files>
+    git restore --worktree
+    force-push
+    delete branches destructively
+
+The human controls scientific commits.
+
+At the end of Repair Mode, show:
+
+    git status
+    git diff --stat
+    git diff
+
+when practical.
+
+---
+
+# 10. DVC Policy
+
+Agents may autonomously use:
+
+    dvc add
+    dvc push
+
+when required by the explicitly approved workflow.
+
+Agents MUST NEVER autonomously use:
+
+    dvc gc
+    dvc destroy
+
+or destructive DVC removal operations.
+
+Never access:
+
+    .dvc/config.local
+
+---
+
+# 11. Verification Workflow
+
+After implementation:
+
+1. run targeted tests;
+2. run phase-level tests;
+3. run the complete test suite when practical;
+4. run physics audit;
+5. run complexity audit;
+6. inspect Git diff;
+7. confirm no unintended files changed.
+
+If tests fail:
+
+- diagnose the failure;
+- fix the implementation if the fix is clearly within scope;
+- do not weaken the test;
+- repeat verification.
+
+If a failure indicates a scientific ambiguity rather than a coding bug,
+stop and request human input.
+
+---
+
+# 12. Unexpected Changes
+
+If implementation discovers a necessary change outside the approved scope,
+DO NOT silently expand the repair.
+
+Stop only the affected work and report:
+
+    File:
+    Why it is required:
+    Proposed change:
+    Scientific impact:
+    Tests affected:
+
+Request authorization to extend the repair scope.
+
+Routine changes within scope should continue autonomously.
+
+---
+
+# 13. Completion
+
+Repair Mode is complete when:
+
+- approved implementation changes are applied;
+- relevant tests pass;
+- physics audit passes;
+- complexity audit passes;
+- unintended changes are absent;
+- Git diff has been inspected.
+
+Do NOT commit.
+
+Return a concise final report containing:
+
+1. files changed;
+2. implementation changes;
+3. tests added/changed;
+4. test results;
+5. physics audit result;
+6. complexity audit result;
+7. remaining concerns;
+8. Git status/diff summary.
+
+---
+
+# Core Principle
+
+The agent is expected to work autonomously.
+
+Human supervision is a BOUNDARY mechanism, not a step-by-step approval
+mechanism.
+
+Routine implementation inside an explicitly approved scientific scope should
+proceed without interruption.
+
+Human intervention is required only for:
+
+- scientific meaning changes;
+- scope expansion;
+- destructive operations;
+- weakened mathematical guarantees;
+- ambiguous physical conventions;
+- irreversible repository operations.
