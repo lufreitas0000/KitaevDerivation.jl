@@ -4,26 +4,82 @@ set -euo pipefail
 #
 # Agent command safety guard for KitaevDerivation.jl
 #
+# AGY invokes this script as a PreToolUse hook.
+# The hook payload is supplied as JSON on stdin.
+#
 # This is intentionally NOT a complete shell security parser.
 # It is a deterministic policy layer that rejects known-dangerous
-# Git/DVC operations before an agent executes them.
+# Git/DVC/filesystem operations before an agent executes them.
 #
-
-if [[ $# -eq 0 ]]; then
-    echo "ERROR: no command supplied" >&2
-    exit 2
-fi
-
-COMMAND="$*"
 
 fail() {
     echo "AGENT SAFETY BLOCKED:" >&2
     echo "  $1" >&2
     echo >&2
     echo "Command:" >&2
-    echo "  $COMMAND" >&2
+    echo "  ${COMMAND:-<unknown>}" >&2
     exit 1
 }
+
+# ----------------------------------------------------------------------
+# Read AGY hook payload from stdin and extract the command.
+#
+# We deliberately use Python's JSON parser rather than attempting
+# to parse arbitrary JSON with shell tools.
+# ----------------------------------------------------------------------
+
+PAYLOAD="$(cat)"
+
+if [[ -z "$PAYLOAD" ]]; then
+    echo "ERROR: empty AGY hook payload" >&2
+    exit 2
+fi
+
+COMMAND="$(
+    python3 -c '
+import json
+import sys
+
+payload = json.load(sys.stdin)
+
+def find_command(obj):
+    if isinstance(obj, dict):
+        # Common direct forms.
+        for key in ("command", "cmd"):
+            value = obj.get(key)
+            if isinstance(value, str):
+                return value
+
+        # Recursively search nested hook/tool payloads.
+        for value in obj.values():
+            result = find_command(value)
+            if result is not None:
+                return result
+
+    elif isinstance(obj, list):
+        for value in obj:
+            result = find_command(value)
+            if result is not None:
+                return result
+
+    return None
+
+command = find_command(payload)
+
+if command is None:
+    sys.exit(3)
+
+print(command)
+' <<< "$PAYLOAD"
+)" || {
+    echo "ERROR: could not extract command from AGY hook payload" >&2
+    exit 2
+}
+
+if [[ -z "$COMMAND" ]]; then
+    echo "ERROR: extracted command is empty" >&2
+    exit 2
+fi
 
 # ----------------------------------------------------------------------
 # Basic shell syntax check.
