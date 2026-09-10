@@ -48,15 +48,63 @@ struct OperatorSum <: AbstractQuantumOperator
 end
 
 # 5. Base Arithmetic Overloads for AST Construction
-*(a::Number, b::AbstractQuantumOperator) = ScaledOperator(a, b)
+*(a::Number, b::AbstractQuantumOperator) = a == 0 ? ZeroOp() : a == 1 ? b : ScaledOperator(a, b)
 *(a::Any, b::AbstractQuantumOperator) = ScaledOperator(a, b) # For Symbolics.Num
-*(a::AbstractQuantumOperator, b::AbstractQuantumOperator) = OperatorString([a, b])
-+(a::AbstractQuantumOperator, b::AbstractQuantumOperator) = OperatorSum([a, b])
--(a::AbstractQuantumOperator, b::AbstractQuantumOperator) = OperatorSum([a, ScaledOperator(-1, b)])
+
+function Base.:*(a::AbstractQuantumOperator, b::AbstractQuantumOperator)
+    a isa ZeroOp && return ZeroOp()
+    b isa ZeroOp && return ZeroOp()
+    a isa IdentityOp && return b
+    b isa IdentityOp && return a
+
+    if a isa ScaledOperator && b isa ScaledOperator
+        return ScaledOperator(a.scalar * b.scalar, a.op * b.op)
+    elseif a isa ScaledOperator
+        return ScaledOperator(a.scalar, a.op * b)
+    elseif b isa ScaledOperator
+        return ScaledOperator(b.scalar, a * b.op)
+    end
+
+    if a isa OperatorString && b isa OperatorString
+        return OperatorString(vcat(a.factors, b.factors))
+    elseif a isa OperatorString
+        return OperatorString(vcat(a.factors, b))
+    elseif b isa OperatorString
+        return OperatorString(vcat(a, b.factors))
+    end
+    
+    return OperatorString([a, b])
+end
+
+function Base.:+(a::AbstractQuantumOperator, b::AbstractQuantumOperator)
+    a isa ZeroOp && return b
+    b isa ZeroOp && return a
+
+    if a isa OperatorSum && b isa OperatorSum
+        return OperatorSum(vcat(a.terms, b.terms))
+    elseif a isa OperatorSum
+        return OperatorSum(vcat(a.terms, b))
+    elseif b isa OperatorSum
+        return OperatorSum(vcat(a, b.terms))
+    end
+    
+    return OperatorSum([a, b])
+end
+
+Base.:-(a::AbstractQuantumOperator, b::AbstractQuantumOperator) = a + ScaledOperator(-1, b)
 
 # 6. Commutator Lie Algebra
 commutator(A::AbstractQuantumOperator, B::AbstractQuantumOperator) = (A * B) - (B * A)
-anticommutator(A::AbstractQuantumOperator, B::AbstractQuantumOperator) = (A * B) + (B * A)
+
+function anticommutator(A::AbstractQuantumOperator, B::AbstractQuantumOperator)
+    if A isa FermionOp && B isa FermionOp
+        if typeof(A) != typeof(B) && A.site == B.site && A.orbital == B.orbital && A.spin == B.spin
+            return IdentityOp()
+        end
+        return ZeroOp()
+    end
+    return (A * B) + (B * A)
+end
 
 # 7. Base Equivalence and Ordering Logic
 ==(a::FermionC, b::FermionC) = (a.site == b.site) && (a.orbital == b.orbital) && (a.spin == b.spin)
@@ -138,10 +186,61 @@ end
 
 # 10. Wick Contraction Engine
 function sort_normal_order(op_seq::Vector{AbstractQuantumOperator})::Vector{Pair{Vector{AbstractQuantumOperator}, Int}}
-    # Omitted for brevity: The BFS queue logic remains similar but now safely 
-    # handles IdentityOp() and ZeroOp() arrays securely without conflation.
-    # Returns [ [FermionC, FermionA] => 1, [IdentityOp] => -1 ]
-    return []
+    queue = [(op_seq, 1)]
+    final_terms = Pair{Vector{AbstractQuantumOperator}, Int}[]
+
+    while !isempty(queue)
+        seq, sign = popfirst!(queue)
+        
+        # Remove IdentityOp as it doesn't affect fermionic anticommutation 
+        seq = filter(x -> !(x isa IdentityOp), seq)
+        
+        if isempty(seq)
+            push!(final_terms, [IdentityOp()] => sign)
+            continue
+        end
+        if any(x -> x isa ZeroOp, seq)
+            continue
+        end
+
+        swapped = false
+        for i in 1:length(seq)-1
+            op1, op2 = seq[i], seq[i+1]
+            
+            if op1 isa FermionOp && op2 isa FermionOp
+                if op1 == op2
+                    swapped = true
+                    break # Nilpotency: xx = 0
+                elseif isless(op2, op1) # Out of normal order
+                    if typeof(op1) != typeof(op2) && op1.site == op2.site && op1.orbital == op2.orbital && op1.spin == op2.spin
+                        # Contraction: c c^dagger = I - c^dagger c
+                        # Term 1: +I
+                        new_seq_I = copy(seq)
+                        deleteat!(new_seq_I, i:i+1)
+                        push!(queue, (new_seq_I, sign))
+                        
+                        # Term 2: - c^dagger c
+                        new_seq_swap = copy(seq)
+                        new_seq_swap[i], new_seq_swap[i+1] = op2, op1
+                        push!(queue, (new_seq_swap, -sign))
+                    else
+                        # Pure anticommutation
+                        new_seq_swap = copy(seq)
+                        new_seq_swap[i], new_seq_swap[i+1] = op2, op1
+                        push!(queue, (new_seq_swap, -sign))
+                    end
+                    swapped = true
+                    break
+                end
+            end
+        end
+        
+        if !swapped
+            push!(final_terms, seq => sign)
+        end
+    end
+    
+    return final_terms
 end
 
 # --- Phase 3 Extensions: Hermiticity and Exact Equalities ---

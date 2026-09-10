@@ -11,7 +11,7 @@ abstract type AbstractQuantumOperator end
 abstract type FermionOp <: AbstractQuantumOperator end
 abstract type SpinOp <: AbstractQuantumOperator end
 abstract type ProjectorOp <: AbstractQuantumOperator end
-nstruct GenericOp <: AbstractQuantumOperator
+struct GenericOp <: AbstractQuantumOperator
     name::Symbol
 end
 export GenericOp

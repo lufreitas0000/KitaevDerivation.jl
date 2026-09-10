@@ -18,24 +18,24 @@ function atomic_hamiltonian()::Vector{AbstractQuantumOperator}
 end
 
 """
-    d4_multiplet_projectors()::Tuple{Projector, Projector}
+    d4_multiplet_projectors()::Tuple{ProjectorOp, ProjectorOp, ProjectorOp}
 
 Returns the physical d4 projectors for the singlet (L=0, L=2) and triplet (L=1) channels.
 """
-function d4_multiplet_projectors()::Tuple{Projector, Projector}
-    return (Projector(:Singlet), Projector(:Triplet))
+function d4_multiplet_projectors()::Tuple{ProjectorOp, ProjectorOp, ProjectorOp}
+    return (MultipletProjector(0), MultipletProjector(1), MultipletProjector(2))
 end
 
 """
-    kanamori_eigenvalues(U::Num, JH::Num)::Dict{Projector, Num}
+    kanamori_eigenvalues(U::Num, JH::Num)::Dict{ProjectorOp, Num}
 
 Maps each d4 angular momentum projector to its respective analytical exact energy (Delta E_L).
 """
-function kanamori_eigenvalues(U::Num, JH::Num)::Dict{Projector, Num}
+function kanamori_eigenvalues(U::Num, JH::Num)::Dict{ProjectorOp, Num}
     return Dict(
-        Projector(:L0) => U + 2*JH,
-        Projector(:L1) => U - 3*JH,
-        Projector(:L2) => U - JH
+        MultipletProjector(0) => U + 2*JH,
+        MultipletProjector(1) => U - 3*JH,
+        MultipletProjector(2) => U - JH
     )
 end
 
@@ -50,12 +50,12 @@ function kanamori_resolvent_rules(U::Num, JH::Num)::Vector{Any}
     R = ResolventOp()
     
     return [
-        @rule( ~x * R * Projector(:L0) => ~x * (1 / eigen_dict[Projector(:L0)]) * Projector(:L0) ),
-        @rule( ~x * R * Projector(:L1) => ~x * (1 / eigen_dict[Projector(:L1)]) * Projector(:L1) ),
-        @rule( ~x * R * Projector(:L2) => ~x * (1 / eigen_dict[Projector(:L2)]) * Projector(:L2) ),
+        @rule( ~x * R * MultipletProjector(0) => ~x * (1 / eigen_dict[MultipletProjector(0)]) * MultipletProjector(0) ),
+        @rule( ~x * R * MultipletProjector(1) => ~x * (1 / eigen_dict[MultipletProjector(1)]) * MultipletProjector(1) ),
+        @rule( ~x * R * MultipletProjector(2) => ~x * (1 / eigen_dict[MultipletProjector(2)]) * MultipletProjector(2) ),
         # Boundary cases where R is the leading operator
-        @rule( R * Projector(:L0) => (1 / eigen_dict[Projector(:L0)]) * Projector(:L0) ),
-        @rule( R * Projector(:L1) => (1 / eigen_dict[Projector(:L1)]) * Projector(:L1) ),
-        @rule( R * Projector(:L2) => (1 / eigen_dict[Projector(:L2)]) * Projector(:L2) )
+        @rule( R * MultipletProjector(0) => (1 / eigen_dict[MultipletProjector(0)]) * MultipletProjector(0) ),
+        @rule( R * MultipletProjector(1) => (1 / eigen_dict[MultipletProjector(1)]) * MultipletProjector(1) ),
+        @rule( R * MultipletProjector(2) => (1 / eigen_dict[MultipletProjector(2)]) * MultipletProjector(2) )
     ]
 end
