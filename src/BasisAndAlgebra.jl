@@ -143,3 +143,34 @@ function sort_normal_order(op_seq::Vector{AbstractQuantumOperator})::Vector{Pair
     # Returns [ [FermionC, FermionA] => 1, [IdentityOp] => -1 ]
     return []
 end
+
+# --- Phase 3 Extensions: Hermiticity and Exact Equalities ---
+export ParticleProjector, dagger
+
+"""
+    ParticleProjector <: ProjectorOp
+Abstract projector tracking hole-occupancy (e.g., P^(1) or P^(2)) for specific lattice sites.
+"""
+struct ParticleProjector <: ProjectorOp
+    holes::Int
+    site::Symbol
+end
+
+# AST Node Equalities (Required for strict Oracle testing)
+==(a::ParticleProjector, b::ParticleProjector) = (a.holes == b.holes) && (a.site == b.site)
+==(a::OperatorString, b::OperatorString) = a.factors == b.factors
+==(a::OperatorSum, b::OperatorSum) = a.terms == b.terms
+==(a::ScaledOperator, b::ScaledOperator) = isequal(a.scalar, b.scalar) && (a.op == b.op)
+
+hash(a::ParticleProjector, h::UInt) = hash(a.holes, hash(a.site, hash(:ParticleProjector, h)))
+
+# The Dagger (Hermitian Conjugate) AST Mapper
+dagger(op::FermionC) = FermionA(op.site, op.orbital, op.spin)
+dagger(op::FermionA) = FermionC(op.site, op.orbital, op.spin)
+dagger(op::ProjectorOp) = op # Projectors are Hermitian
+dagger(op::IdentityOp) = op
+dagger(op::ZeroOp) = op
+dagger(op::GenericOp) = op
+dagger(op::ScaledOperator) = ScaledOperator(op.scalar, dagger(op.op)) # Assuming real kinetic scalars (t, t')
+dagger(op::OperatorString) = OperatorString(reverse(map(dagger, op.factors)))
+dagger(op::OperatorSum) = OperatorSum(map(dagger, op.terms))

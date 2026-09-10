@@ -18,6 +18,7 @@ export GenericOp
 
 include("BasisAndAlgebra.jl")
 include("AuxiliaryOperators.jl")
+include("KineticHopping.jl")
 include("SingleSiteSOC.jl")
 include("TwoSiteKanamori.jl")
 include("SchriefferWolff.jl")
