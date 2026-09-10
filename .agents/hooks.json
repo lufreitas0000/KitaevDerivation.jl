@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "./scripts/check-agent-safety.sh",
+            "command": "/home/lucas/Projects/Julia/KitaevDerivation.jl/scripts/check-agent-safety.sh",
             "timeout": 5
           }
         ]
