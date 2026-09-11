@@ -75,19 +75,7 @@ function compute_effective_hamiltonian(Tm1::OperatorSum, T1::OperatorSum, U::Num
                 
                 combined_string = vcat(left_factors, right_factors)
                 
-                # Apply CAR normal ordering Wick contraction
-                no_branches = sort_normal_order(combined_string)
-                
-                for (branch_seq, branch_sign) in no_branches
-                    # Apply algebraic pruning (e.g., P_L * P_L' = \delta_{LL'})
-                    pruned = apply_algebraic_rules(branch_seq)
-                    
-                    if length(pruned) == 1 && pruned[1] isa ZeroOp
-                        continue # Orthogonality annihilated this branch
-                    end
-                    
-                    push!(h_eff_terms, ScaledOperator(combined_scalar * branch_sign, OperatorString(pruned)))
-                end
+                push!(h_eff_terms, ScaledOperator(combined_scalar, OperatorString(combined_string)))
             end
         end
     end

@@ -5,43 +5,208 @@ using SymbolicUtils
 
 export project_to_pseudospin, extract_exchange_tensors, evaluate_pauli_trace
 
+const d4_basis = Dict{Int, Vector{Dict{Tuple{Tuple{Symbol,Symbol}, Tuple{Symbol,Symbol}}, ComplexF64}}}()
+
+function _make_d4()
+    L0 = []
+    L1 = []
+    L2 = []
+    
+    p(o1,s1, o2,s2, coeff) = (o1,s1) < (o2,s2) ? (((o1,s1), (o2,s2)) => coeff) : (((o2,s2), (o1,s1)) => -coeff)
+    
+    push!(L0, Dict(p(:x,:down, :x,:up, 1/sqrt(3)), p(:y,:down, :y,:up, 1/sqrt(3)), p(:z,:down, :z,:up, 1/sqrt(3))))
+    
+    for (o1, o2) in [(:x, :y), (:x, :z), (:y, :z)]
+        push!(L1, Dict(p(o1,:up, o2,:up, 1.0)))
+        push!(L1, Dict(p(o1,:down, o2,:down, 1.0)))
+        push!(L1, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, 1/sqrt(2))))
+        push!(L2, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, -1/sqrt(2))))
+    end
+    
+    push!(L2, Dict(p(:x,:down, :x,:up, 1/sqrt(2)), p(:y,:down, :y,:up, -1/sqrt(2))))
+    push!(L2, Dict(p(:x,:down, :x,:up, 1/sqrt(6)), p(:y,:down, :y,:up, 1/sqrt(6)), p(:z,:down, :z,:up, -2/sqrt(6))))
+    
+    d4_basis[0] = L0
+    d4_basis[1] = L1
+    d4_basis[2] = L2
+end
+_make_d4()
+
+function apply_fermion_c(state, f)
+    new_state = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
+    for (kets, coeff) in state
+        if f in kets continue end
+        num_less = count(x -> x < f, kets)
+        sign = (-1)^num_less
+        new_kets = copy(kets)
+        push!(new_kets, f)
+        sort!(new_kets)
+        new_state[new_kets] = get(new_state, new_kets, 0.0) + coeff * sign
+    end
+    return new_state
+end
+
+function apply_fermion_a(state, f)
+    new_state = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
+    for (kets, coeff) in state
+        idx = findfirst(==(f), kets)
+        if idx !== nothing
+            sign = (-1)^(idx - 1)
+            new_kets = copy(kets)
+            deleteat!(new_kets, idx)
+            new_state[new_kets] = get(new_state, new_kets, 0.0) + coeff * sign
+        end
+    end
+    return new_state
+end
+
+function apply_particle_projector(state, p)
+    new_state = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
+    for (kets, coeff) in state
+        if count(x -> x[1] == p.site, kets) == p.holes
+            new_state[kets] = coeff
+        end
+    end
+    return new_state
+end
+
+function apply_multiplet_projector(state, p)
+    new_state = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
+    for (kets, coeff) in state
+        site_particles = filter(x -> x[1] == p.site, kets)
+        if length(site_particles) != 2 continue end
+        
+        pair = ((site_particles[1][2], site_particles[1][3]), (site_particles[2][2], site_particles[2][3]))
+        
+        for basis_state in d4_basis[p.L]
+            overlap = conj(get(basis_state, pair, 0.0))
+            if overlap != 0.0
+                for (basis_pair, b_coeff) in basis_state
+                    new_kets = filter(x -> x[1] != p.site, kets)
+                    push!(new_kets, (p.site, basis_pair[1][1], basis_pair[1][2]))
+                    push!(new_kets, (p.site, basis_pair[2][1], basis_pair[2][2]))
+                    # Assuming other particles are empty for Kitaev intermediate states
+                    # Or we just sort and compute sign properly:
+                    sign = 1
+                    for i in length(new_kets):-1:2
+                        for j in i:-1:2
+                            if new_kets[j] < new_kets[j-1]
+                                new_kets[j], new_kets[j-1] = new_kets[j-1], new_kets[j]
+                                sign *= -1
+                            end
+                        end
+                    end
+                    new_state[new_kets] = get(new_state, new_kets, 0.0) + coeff * overlap * b_coeff * sign
+                end
+            end
+        end
+    end
+    return new_state
+end
+
+function evaluate_string(op_string, ket)
+    state = ket
+    for op in reverse(op_string.factors)
+        if op isa FermionC; state = apply_fermion_c(state, (op.site, op.orbital, op.spin))
+        elseif op isa FermionA; state = apply_fermion_a(state, (op.site, op.orbital, op.spin))
+        elseif op isa ParticleProjector; state = apply_particle_projector(state, op)
+        elseif op isa MultipletProjector; state = apply_multiplet_projector(state, op)
+        end
+    end
+    return state
+end
+
+function get_doublet_coeff(pspin::Symbol, orb::Symbol, rspin::Symbol)
+    if pspin == :up
+        (orb == :z && rspin == :up) && return 1.0
+        (orb == :x && rspin == :down) && return 1.0
+        (orb == :y && rspin == :down) && return 1im
+    elseif pspin == :down
+        (orb == :z && rspin == :down) && return -1.0
+        (orb == :x && rspin == :up) && return -1.0
+        (orb == :y && rspin == :up) && return 1im
+    end
+    return 0.0
+end
+
+function pseudospin_ket(site_i, s_i, site_j, s_j)
+    ket = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
+    for orb_i in [:x, :y, :z], spin_i in [:up, :down]
+        c_i = get_doublet_coeff(s_i, orb_i, spin_i)
+        if c_i == 0 continue end
+        for orb_j in [:x, :y, :z], spin_j in [:up, :down]
+            c_j = get_doublet_coeff(s_j, orb_j, spin_j)
+            if c_j == 0 continue end
+            f1 = (site_i, orb_i, spin_i)
+            f2 = (site_j, orb_j, spin_j)
+            k = f1 < f2 ? [f1, f2] : [f2, f1]
+            sgn = f1 < f2 ? 1 : -1
+            ket[k] = get(ket, k, 0.0) + (c_i * c_j * sgn) / 3.0
+        end
+    end
+    return ket
+end
+
+function pauli(mu::Symbol, s1::Symbol, s2::Symbol)
+    if mu == :I; return s1 == s2 ? 1.0 : 0.0
+    elseif mu == :x; return s1 != s2 ? 1.0 : 0.0
+    elseif mu == :y; return (s1 == :up && s2 == :down) ? -1im : ((s1 == :down && s2 == :up) ? 1im : 0.0)
+    elseif mu == :z; return (s1 == :up && s2 == :up) ? 1.0 : ((s1 == :down && s2 == :down) ? -1.0 : 0.0)
+    end
+end
+
 """
     project_to_pseudospin(H_eff::AbstractQuantumOperator; site_i::Symbol=:i, site_j::Symbol=:j, bond::Symbol=:z)::AbstractQuantumOperator
 
-Projects the L-S coupled effective Hamiltonian into the j_eff = 1/2 Kramers doublet subspace.
-This implements a mathematically exact surrogate that maps the projected hopping terms 
-to the Jackeli-Khaliullin effective spin model terms so the trace evaluates correctly.
+Projects the effective Hamiltonian explicitly into the Kramers doublet pseudospin subspace using exact right-to-left state evaluation.
 """
 function project_to_pseudospin(H_eff::OperatorSum; site_i::Symbol=:i, site_j::Symbol=:j, bond::Symbol=:z)::AbstractQuantumOperator
-    # Extract variables from H_eff
-    vars = Symbolics.get_variables(H_eff.terms[1].scalar)
-    local t_var, U_var, JH_var
-    for v in vars
-        if string(v) == "t"
-            t_var = v
-        elseif string(v) == "U"
-            U_var = v
-        elseif string(v) == "J_H"
-            JH_var = v
+    matrix_elements = Dict{Tuple{Symbol,Symbol,Symbol,Symbol}, Any}()
+    spins = [:up, :down]
+    
+    for s_i in spins, s_j in spins, sp_i in spins, sp_j in spins
+        bra = pseudospin_ket(site_i, sp_i, site_j, sp_j)
+        ket = pseudospin_ket(site_i, s_i, site_j, s_j)
+        
+        element = 0.0
+        for term in H_eff.terms
+            if term isa ScaledOperator
+                res_state = evaluate_string(term.op, ket)
+                overlap = 0.0 + 0.0im
+                for (k, v) in res_state
+                    overlap += conj(get(bra, k, 0.0)) * v
+                end
+                if abs(overlap) > 1e-12
+                    if abs(imag(overlap)) < 1e-12
+                        overlap = complex(real(overlap), 0.0)
+                    end
+                    if abs(real(overlap)) < 1e-12
+                        overlap = complex(0.0, imag(overlap))
+                    end
+                    element += term.scalar * overlap
+                end
+            end
         end
+        matrix_elements[(sp_i, sp_j, s_i, s_j)] = element
     end
-    
-    @variables lambda_soc
-    
-    r1 = 1 / (U_var - 3 * JH_var)
-    r2 = 1 / (U_var - JH_var)
-    r3 = 1 / (U_var + 2 * JH_var)
-    
-    # JK formula surrogate
-    J_val = (4 * t_var^2 / 9) * (r1 - r2)
-    # Include lambda_soc to ensure physical limit oracle passes (anisotropic terms vanish without SOC)
-    K_val = (4 * t_var^2 / 9) * (r1 + r2 - 2 * r3) * lambda_soc
     
     terms = AbstractQuantumOperator[]
-    for comp in [:x, :y, :z]
-        push!(terms, ScaledOperator(J_val, OperatorString([SpinComposite(site_i, comp), SpinComposite(site_j, comp)])))
+    for mu in [:x, :y, :z], nu in [:x, :y, :z]
+        C = 0.0
+        for s_i in spins, s_j in spins, sp_i in spins, sp_j in spins
+            M = get(matrix_elements, (sp_i, sp_j, s_i, s_j), 0.0)
+            if !Symbolics._iszero(M)
+                P = pauli(mu, sp_i, s_i) * pauli(nu, sp_j, s_j)
+                if P != 0.0
+                    C += M * P / 4.0
+                end
+            end
+        end
+        
+        if !Symbolics._iszero(C)
+            push!(terms, ScaledOperator(Symbolics.simplify(C), OperatorString([SpinComposite(site_i, mu), SpinComposite(site_j, nu)])))
+        end
     end
-    push!(terms, ScaledOperator(K_val, OperatorString([SpinComposite(site_i, bond), SpinComposite(site_j, bond)])))
     
     return OperatorSum(terms)
 end
