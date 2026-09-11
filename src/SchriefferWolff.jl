@@ -73,19 +73,25 @@ function compute_effective_hamiltonian(Tm1::OperatorSum, T1::OperatorSum, U::Num
                 left_factors = left_term.op isa OperatorString ? left_term.op.factors : [left_term.op]
                 right_factors = right_term.op isa OperatorString ? right_term.op.factors : [right_term.op]
                 
-                combined_string = OperatorString(vcat(left_factors, right_factors))
+                combined_string = vcat(left_factors, right_factors)
                 
-                # Apply algebraic pruning (e.g., P_L * P_L' = \\delta_{LL'})
-                pruned = apply_algebraic_rules(combined_string.factors)
+                # Apply CAR normal ordering Wick contraction
+                no_branches = sort_normal_order(combined_string)
                 
-                if length(pruned) == 1 && pruned[1] isa ZeroOp
-                    continue # Orthogonality annihilated this branch
+                for (branch_seq, branch_sign) in no_branches
+                    # Apply algebraic pruning (e.g., P_L * P_L' = \delta_{LL'})
+                    pruned = apply_algebraic_rules(branch_seq)
+                    
+                    if length(pruned) == 1 && pruned[1] isa ZeroOp
+                        continue # Orthogonality annihilated this branch
+                    end
+                    
+                    push!(h_eff_terms, ScaledOperator(combined_scalar * branch_sign, OperatorString(pruned)))
                 end
-                
-                push!(h_eff_terms, ScaledOperator(combined_scalar, OperatorString(pruned)))
             end
         end
     end
     
-    return OperatorSum(h_eff_terms)
+    # Collect identical terms to simplify the effective Hamiltonian
+    return collect_terms(OperatorSum(h_eff_terms))
 end
