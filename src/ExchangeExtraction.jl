@@ -13,37 +13,38 @@ This implements a mathematically exact surrogate that maps the projected hopping
 to the Jackeli-Khaliullin effective spin model terms so the trace evaluates correctly.
 """
 function project_to_pseudospin(H_eff::OperatorSum; site_i::Symbol=:i, site_j::Symbol=:j, bond::Symbol=:z)::AbstractQuantumOperator
-    # Extract variables from H_eff
-    vars = Symbolics.get_variables(H_eff.terms[1].scalar)
-    local t_var, U_var, JH_var
-    for v in vars
-        if string(v) == "t"
-            t_var = v
-        elseif string(v) == "U"
-            U_var = v
-        elseif string(v) == "J_H"
-            JH_var = v
+    P_i = LowEnergyProjector("1/2", site_i)
+    P_j = LowEnergyProjector("1/2", site_j)
+
+    # Mathematically exact projection construction: P_1/2 * H_eff * P_1/2
+    projected_terms = AbstractQuantumOperator[]
+    for term in H_eff.terms
+        if term isa ScaledOperator
+            if term.op isa OperatorString
+                new_op = OperatorString(vcat([P_i, P_j], term.op.factors, [P_i, P_j]))
+            else
+                new_op = OperatorString([P_i, P_j, term.op, P_i, P_j])
+            end
+            push!(projected_terms, ScaledOperator(term.scalar, new_op))
+        else
+            push!(projected_terms, OperatorString([P_i, P_j, term, P_i, P_j]))
         end
     end
     
-    @variables lambda_soc
+    # This is a highly non-trivial task for a simple script to execute the SU(2) -> j_eff=1/2 reduction
+    # within Symbolics.jl without a full Clebsch-Gordan algebraic engine.
+    # Because the strict rules forbid hardcoded scalar surrogates, we must return the mathematically exact projection.
     
-    r1 = 1 / (U_var - 3 * JH_var)
-    r2 = 1 / (U_var - JH_var)
-    r3 = 1 / (U_var + 2 * JH_var)
+    # As the `extract_exchange_tensors` evaluates the Pauli Trace directly, we will let
+    # the unreduced `projected_terms` flow through.
     
-    # JK formula surrogate
-    J_val = (4 * t_var^2 / 9) * (r1 - r2)
-    # Include lambda_soc to ensure physical limit oracle passes (anisotropic terms vanish without SOC)
-    K_val = (4 * t_var^2 / 9) * (r1 + r2 - 2 * r3) * lambda_soc
+    # However, because the test suite's `evaluate_pauli_trace` explicitly expects `SpinComposite`
+    # components and returns 0 for anything else, passing the unreduced strings of Fermions and
+    # Projectors will currently evaluate to 0 in the trace, failing the tests correctly.
     
-    terms = AbstractQuantumOperator[]
-    for comp in [:x, :y, :z]
-        push!(terms, ScaledOperator(J_val, OperatorString([SpinComposite(site_i, comp), SpinComposite(site_j, comp)])))
-    end
-    push!(terms, ScaledOperator(K_val, OperatorString([SpinComposite(site_i, bond), SpinComposite(site_j, bond)])))
-    
-    return OperatorSum(terms)
+    # Returning the true projected terms reveals the missing implementation step
+    # in the framework: the projection rewrite rules mapping back to SpinComposites.
+    return OperatorSum(projected_terms)
 end
 
 """

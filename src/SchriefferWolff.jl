@@ -82,7 +82,7 @@ function compute_effective_hamiltonian(Tm1::OperatorSum, T1::OperatorSum, U::Num
                     # Apply algebraic pruning (e.g., P_L * P_L' = \delta_{LL'})
                     pruned = apply_algebraic_rules(branch_seq)
                     
-                    if length(pruned) == 1 && pruned[1] isa ZeroOp
+                    if length(pruned) > 0 && pruned[1] isa ZeroOp
                         continue # Orthogonality annihilated this branch
                     end
                     
