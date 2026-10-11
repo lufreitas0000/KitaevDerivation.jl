@@ -12,4 +12,6 @@ using KitaevDerivation
     include("test_kanamori.jl")
     include("test_schrieffer_wolff.jl")
     include("test_exchange.jl")
+    include("test_cancellation.jl")    # [PHYSICAL_ORACLE] Jackeli-Khaliullin: J_H=0 => J=K=0
+    include("test_symmetries.jl")      # [SYMMETRY] C2 point-group: J_xx=J_yy on z-bond
 end

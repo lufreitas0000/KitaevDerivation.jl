@@ -4,8 +4,37 @@ using Symbolics
 using SymbolicUtils
 
 export project_to_pseudospin, extract_exchange_tensors, evaluate_pauli_trace
+export get_doublet_coeff, pseudospin_ket, d4_basis
 
-const d4_basis = Dict{Int, Vector{Dict{Tuple{Tuple{Symbol,Symbol}, Tuple{Symbol,Symbol}}, ComplexF64}}}()
+const d4_basis = Dict{String, Vector{Dict{Tuple{Tuple{Symbol,Symbol}, Tuple{Symbol,Symbol}}, ComplexF64}}}()
+
+# ---------------------------------------------------------------------------
+# d4 Two-Hole Basis States: Clebsch-Gordan decomposition
+# ---------------------------------------------------------------------------
+# Provenance: formal_derivation.tex §Commutators (eqs. for <s_i'|h_s2 P_{L}^{(2)} h_s3†|s_i>).
+# Also: Georges et al., Annu. Rev. Condens. Matter Phys. 4, 137 (2013).
+#
+# In the t2g manifold (3 orbitals x, y, z; spin up/down => 6 modes), the
+# 15 two-hole states decompose under orbital angular momentum L as:
+#
+#   L=0, S=0 (1 state, "^1S"): singlet in orbital AND spin
+#     |L=0⟩ = (1/√3)(|x↓x↑⟩ + |y↓y↑⟩ + |z↓z↑⟩)
+#
+#   L=1, S=1 (9 states, "^3P"): triplet in orbital; triplet in spin
+#     Three orbital pairs (xy, xz, yz) × three spin combinations (↑↑, ↑↓+↓↑, ↓↓)
+#
+#   L=2, S=0 (5 states, "^1D"): quintet orbital; singlet spin
+#     Five traceless symmetric combinations in orbital space
+#
+# The pair notation p(o1,s1, o2,s2, coeff) encodes the two-hole state
+# |o1,s1; o2,s2⟩ as an antisymmetrized combination (lexicographic order).
+#
+# VALIDATION: These coefficients must satisfy:
+#   1. Orthonormality within each multiplet
+#   2. H_K |ψ_L⟩ = ΔE_L |ψ_L⟩ where ΔE_L = kanamori_eigenvalues(U,J_H)[L]
+#   3. Total dimension: dim(L=0) + dim(L=1) + dim(L=2) = 1 + 9 + 5 = 15
+# See test/test_kanamori.jl [NUMERICAL_CROSSCHECK] for validation tests.
+# ---------------------------------------------------------------------------
 
 function _make_d4()
     L0 = []
@@ -14,23 +43,27 @@ function _make_d4()
     
     p(o1,s1, o2,s2, coeff) = (o1,s1) < (o2,s2) ? (((o1,s1), (o2,s2)) => coeff) : (((o2,s2), (o1,s1)) => -coeff)
     
+    # L=0 (^1S): fully antisymmetric orbital singlet
     push!(L0, Dict(p(:x,:down, :x,:up, 1/sqrt(3)), p(:y,:down, :y,:up, 1/sqrt(3)), p(:z,:down, :z,:up, 1/sqrt(3))))
     
+    # L=1 (^3P): 9 states = 3 orbital pairs × 3 spin configurations
     for (o1, o2) in [(:x, :y), (:x, :z), (:y, :z)]
-        push!(L1, Dict(p(o1,:up, o2,:up, 1.0)))
-        push!(L1, Dict(p(o1,:down, o2,:down, 1.0)))
-        push!(L1, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, 1/sqrt(2))))
-        push!(L2, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, -1/sqrt(2))))
+        push!(L1, Dict(p(o1,:up, o2,:up, 1.0)))                                           # Sz=+1
+        push!(L1, Dict(p(o1,:down, o2,:down, 1.0)))                                        # Sz=-1
+        push!(L1, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, 1/sqrt(2))))   # Sz=0, triplet
+        push!(L2, Dict(p(o1,:up, o2,:down, 1/sqrt(2)), p(o1,:down, o2,:up, -1/sqrt(2))))  # Sz=0, singlet
     end
     
+    # L=2 (^1D): 5 states; traceless symmetric combinations in orbital, spin singlet
     push!(L2, Dict(p(:x,:down, :x,:up, 1/sqrt(2)), p(:y,:down, :y,:up, -1/sqrt(2))))
     push!(L2, Dict(p(:x,:down, :x,:up, 1/sqrt(6)), p(:y,:down, :y,:up, 1/sqrt(6)), p(:z,:down, :z,:up, -2/sqrt(6))))
     
-    d4_basis[0] = L0
-    d4_basis[1] = L1
-    d4_basis[2] = L2
+    d4_basis["P_[L=0]"] = L0
+    d4_basis["P_[L=1]"] = L1
+    d4_basis["P_[L=2]"] = L2
 end
 _make_d4()
+
 
 function apply_fermion_c(state, f)
     new_state = Dict{Vector{Tuple{Symbol, Symbol, Symbol}}, ComplexF64}()
@@ -88,10 +121,11 @@ function apply_multiplet_projector(state, p)
                     # Assuming other particles are empty for Kitaev intermediate states
                     # Or we just sort and compute sign properly:
                     sign = 1
-                    for i in length(new_kets):-1:2
-                        for j in i:-1:2
-                            if new_kets[j] < new_kets[j-1]
-                                new_kets[j], new_kets[j-1] = new_kets[j-1], new_kets[j]
+                    n = length(new_kets)
+                    for idx_i in 1:n
+                        for idx_j in 1:(n-idx_i)
+                            if new_kets[idx_j+1] < new_kets[idx_j]
+                                new_kets[idx_j], new_kets[idx_j+1] = new_kets[idx_j+1], new_kets[idx_j]
                                 sign *= -1
                             end
                         end
@@ -117,14 +151,21 @@ function evaluate_string(op_string, ket)
 end
 
 function get_doublet_coeff(pspin::Symbol, orb::Symbol, rspin::Symbol)
+    # Kramers doublet coefficients from formal_derivation.tex, eq. (lines 129-132):
+    #
+    #   |+⟩ ≡ |j_eff=1/2, m=+1/2⟩ = (1/√3)(-|z,↑⟩ - i|y,↓⟩ - |x,↓⟩)
+    #   |-⟩ ≡ |j_eff=1/2, m=-1/2⟩ = (1/√3)(|z,↓⟩ + i|y,↑⟩ - |x,↑⟩)
+    #
+    # Convention: hole picture, T-P equivalence L_{t2g} = -l_eff applied.
+    # Normalization factor 1/√3 absorbed into pseudospin_ket via /3.0 (two-site product).
     if pspin == :up
-        (orb == :z && rspin == :up) && return 1.0
-        (orb == :x && rspin == :down) && return 1.0
-        (orb == :y && rspin == :down) && return 1im
+        (orb == :z && rspin == :up)   && return -1.0    # -|z,↑⟩
+        (orb == :x && rspin == :down) && return -1.0    # -|x,↓⟩
+        (orb == :y && rspin == :down) && return -1im    # -i|y,↓⟩
     elseif pspin == :down
-        (orb == :z && rspin == :down) && return -1.0
-        (orb == :x && rspin == :up) && return -1.0
-        (orb == :y && rspin == :up) && return 1im
+        (orb == :z && rspin == :down) && return 1.0     # +|z,↓⟩
+        (orb == :x && rspin == :up)   && return -1.0    # -|x,↑⟩
+        (orb == :y && rspin == :up)   && return 1im     # +i|y,↑⟩
     end
     return 0.0
 end
@@ -156,9 +197,24 @@ function pauli(mu::Symbol, s1::Symbol, s2::Symbol)
 end
 
 """
-    project_to_pseudospin(H_eff::AbstractQuantumOperator; site_i::Symbol=:i, site_j::Symbol=:j, bond::Symbol=:z)::AbstractQuantumOperator
+    project_to_pseudospin(H_eff::OperatorSum; site_i, site_j, bond)::AbstractQuantumOperator
 
-Projects the effective Hamiltonian explicitly into the Kramers doublet pseudospin subspace using exact right-to-left state evaluation.
+Projects the effective Hamiltonian into the Kramers doublet pseudospin subspace
+using exact right-to-left state evaluation.
+
+**Architectural limit — strong-SOC approximation:**
+This function operates in the λ_SOC → ∞ limit. The j_eff=1/2 Kramers doublet
+basis states are the fixed analytical states from formal_derivation.tex §The model:
+
+    |+⟩ = (1/√3)(-|z,↑⟩ - i|y,↓⟩ - |x,↓⟩)
+    |-⟩ = (1/√3)(|z,↓⟩ + i|y,↑⟩ - |x,↑⟩)
+
+Because the basis is fixed in the λ→∞ limit, taking λ_SOC → 0 *after* projection
+is a mathematical contradiction. The non-relativistic limit oracle (K→0 at λ→0)
+is architecturally excluded. See docs/critical_review_2026.md §Problem 2.
+
+For finite-λ_SOC physics (Γ, Γ', DM interactions), a different basis implementation
+working with the full 6×6 single-site Hilbert space is required.
 """
 function project_to_pseudospin(H_eff::OperatorSum; site_i::Symbol=:i, site_j::Symbol=:j, bond::Symbol=:z)::AbstractQuantumOperator
     matrix_elements = Dict{Tuple{Symbol,Symbol,Symbol,Symbol}, Any}()
@@ -195,8 +251,14 @@ function project_to_pseudospin(H_eff::OperatorSum; site_i::Symbol=:i, site_j::Sy
         C = 0.0
         for s_i in spins, s_j in spins, sp_i in spins, sp_j in spins
             M = get(matrix_elements, (sp_i, sp_j, s_i, s_j), 0.0)
+            if M isa Complex
+                # Simplify real and imaginary parts to avoid symbolic artifacts
+                M = complex(Symbolics.simplify(real(M)), Symbolics.simplify(imag(M)))
+            else
+                M = Symbolics.simplify(M)
+            end
             if !Symbolics._iszero(M)
-                P = pauli(mu, sp_i, s_i) * pauli(nu, sp_j, s_j)
+                P = pauli(mu, s_i, sp_i) * pauli(nu, s_j, sp_j)
                 if P != 0.0
                     C += M * P / 4.0
                 end
@@ -217,11 +279,23 @@ end
 Applies Pauli matrix trace identities Tr(\\sigma^\\alpha \\sigma^\\beta) = 2\\delta^{\\alpha\\beta} 
 to isolate the scalar coefficients for the Kitaev (K), Heisenberg (J), and off-diagonal (\\Gamma, \\Gamma') terms.
 """
-function extract_exchange_tensors(H_pseudospin::AbstractQuantumOperator, bond::Symbol; site_i::Symbol=:i, site_j::Symbol=:j)::Dict{Symbol, Num}
+function extract_exchange_tensors(H_pseudospin::AbstractQuantumOperator, bond::Symbol; site_i::Symbol=:i, site_j::Symbol=:j)::Dict{Symbol, Any}
     function extract_coeff(comp_i, comp_j)
         op_probe = OperatorString([SpinComposite(site_i, comp_i), SpinComposite(site_j, comp_j)])
-        tr_val = evaluate_pauli_trace(H_pseudospin * op_probe)
-        return tr_val / 4
+        tr_val = 0
+        for term in H_pseudospin.terms
+            if term isa ScaledOperator
+                tr_val += term.scalar * evaluate_pauli_trace(term.op * op_probe)
+            end
+        end
+        tr_val = Symbolics.simplify(tr_val / 4)
+        if tr_val isa Complex
+            tr_val = Symbolics.simplify(real(tr_val))
+        end
+        # The pseudospin trace extracts coefficients of Pauli matrices (σ^μ σ^ν).
+        # Since physical spin is S = σ / 2, the Hamiltonian term is J (σ/2)(σ/2) = (J/4) σ σ.
+        # Thus the extracted coefficient C = J/4. We must multiply by 4 to return the physical J.
+        return Symbolics.simplify(tr_val * 4)
     end
 
     J_xx = extract_coeff(:x, :x)
@@ -245,7 +319,7 @@ function extract_exchange_tensors(H_pseudospin::AbstractQuantumOperator, bond::S
         Gamma_prime = extract_coeff(:y, :z) + extract_coeff(:z, :y)
     end
 
-    return Dict{Symbol, Num}(
+    return Dict{Symbol, Any}(
         :J => J,
         :K => K,
         :Gamma => Gamma,

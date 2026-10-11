@@ -1,0 +1,18 @@
+PHASE 2: ATTACK PLAN & DIAGNOSTICS
+
+STATUS: Both files require mathematical and convention refactoring.
+
+1. src/SingleSiteSOC.jl -> NEEDS REFACTORING
+   - MATH ISSUE 1: Incorrect SOC energy magnitude. `project_jeff_half` analytically replaces it with `(lambda / 2)`. It should be `lambda` to satisfy the invariant `Delta E = 3lambda/2` (where `E_{1/2} = lambda` and `E_{3/2} = -lambda/2`).
+   - MATH ISSUE 2: `project_jeff_half` ignores the `op_string` argument, meaning it will incorrectly discard hopping operators when expanding `P_{1/2} H_t P_{1/2}`.
+   - MATH ISSUE 3: Missing `j_eff = 3/2` structures, violating the AGENTS.md invariant requirement.
+   - MATH ISSUE 4: Disconnected Symbolic Types. `spin_orbit_coupling` returns `GenericOp("S_dot_L_i")` while T-P equivalence expects `OrbitalComposite`.
+   - CONVENTION ISSUE: Low-Energy Projector naming does not adhere to `P_j_eff_1_2` as mandated by AGENTS.md.
+
+2. src/TwoSiteKanamori.jl -> NEEDS REFACTORING
+   - MATH ISSUE: Missing minus sign in the Resolvent Expansion. `kanamori_resolvent_rules` evaluates the resolvent to `+1 / Delta E_L`. Since `R = (E_0 - H_0)^{-1}` and `E_m > E_0`, it MUST evaluate to `-1 / Delta E_L`. This missing sign will silently invert the overall physical sign of the effective Hamiltonian exchange (ferromagnetic instead of antiferromagnetic).
+   - CONVENTION ISSUE: Multiplet projectors are documented using prose (e.g. `L=0`) instead of the strictly required string notation `P_[L=0]`, `P_[L=1]`, and `P_[L=2]` in both docstrings and strings.
+
+NEXT STEPS:
+- Refactor SingleSiteSOC.jl: fix the SOC analytical projection factor and rules, fix the op_string bug, add j_eff=3/2 projectors, and fix projector string naming.
+- Refactor TwoSiteKanamori.jl: fix the resolvent minus sign and strictly enforce the `P_[L=X]` multiplet naming convention in source and docstrings.

@@ -13,10 +13,13 @@ function directional_hopping_matrix(bond::Symbol, t::Num, t_prime::Num)::Matrix{
     mat = zeros(Num, 3, 3)
     if bond == :x
         mat[2, 3] = mat[3, 2] = t # |y><z| + |z><y|
+        mat[1, 1] = t_prime
     elseif bond == :y
         mat[1, 3] = mat[3, 1] = t # |x><z| + |z><x|
+        mat[2, 2] = t_prime
     elseif bond == :z
         mat[1, 2] = mat[2, 1] = t # |x><y| + |y><x|
+        mat[3, 3] = t_prime
     else
         throw(ArgumentError("Bond must be :x, :y, or :z"))
     end

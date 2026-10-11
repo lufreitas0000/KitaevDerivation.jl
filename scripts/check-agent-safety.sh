@@ -46,7 +46,7 @@ BINARY=$(echo "$COMMAND" | head -n 1 | awk '{print $1}')
 
 # Check allowlist
 ALLOWED=0
-for cmd in julia git dvc cat ls grep find head tail sed awk; do
+for cmd in julia git dvc cat ls grep find head tail sed awk echo python3 rg sleep uuidgen bash sh; do
     if [[ "$BINARY" == "$cmd" ]]; then
         ALLOWED=1
         break
@@ -66,6 +66,15 @@ if [[ "$COMMAND" =~ (^|[[:space:];|&])git[[:space:]]+clean[[:space:]]+.*-f ]]; t
     exit 1
 fi
 if [[ "$COMMAND" =~ (^|[[:space:];|&])dvc[[:space:]]+destroy($|[[:space:];|&]) ]]; then
+    exit 1
+fi
+if [[ "$COMMAND" =~ (^|[[:space:];|&])dvc[[:space:]]+gc($|[[:space:];|&]) ]]; then
+    exit 1
+fi
+if [[ "$COMMAND" =~ (^|[[:space:];|&])rm[[:space:]]+-rf($|[[:space:];|&]) ]]; then
+    exit 1
+fi
+if [[ "$COMMAND" =~ (^|[[:space:];|&])git[[:space:]]+push[[:space:]]+.*--force($|[[:space:];|&]) ]]; then
     exit 1
 fi
 

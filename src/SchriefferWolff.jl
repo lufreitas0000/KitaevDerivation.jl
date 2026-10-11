@@ -28,7 +28,7 @@ function apply_resolvent(H_t::OperatorSum, U::Num, JH::Num; site::Union{Symbol, 
                 eigen_dict = kanamori_eigenvalues(U, JH, proj_site)
                 
                 # Spectral resolution: Split the term into the 3 multiplet channels
-                for L in [0, 1, 2]
+                for L in ["P_[L=0]", "P_[L=1]", "P_[L=2]"]
                     channel_proj = MultipletProjector(L, proj_site)
                     energy_penalty = -1 / eigen_dict[channel_proj] # (E_0 - H_0)^{-1}
                     

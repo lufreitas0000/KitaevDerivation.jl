@@ -43,9 +43,9 @@ end
     @test apply_algebraic_rules(commutator(V_N, T_m1), rules_VN) == -(U - 3*J_H) * T_m1
 
     # Projectors for d4 intermediate multiplets (Eq. A48)
-    P_L0 = MultipletProjector(0, :i)
-    P_L1 = MultipletProjector(1, :i)
-    P_L2 = MultipletProjector(2, :i)
+    P_L0 = MultipletProjector("P_[L=0]", :i)
+    P_L1 = MultipletProjector("P_[L=1]", :i)
+    P_L2 = MultipletProjector("P_[L=2]", :i)
 
     P_singlet = P_L0 + P_L2
     P_triplet = P_L1

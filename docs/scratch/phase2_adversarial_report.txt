@@ -1,0 +1,13 @@
+ADVERSARIAL VERIFICATION REPORT: PHASE 2
+
+The adversarial verifier has found CRITICAL scientific and architectural violations in the Phase 2 test suite. The current green tests are "fake greens" acting as placeholders or asserting against hardcoded implementations.
+
+1. test/test_soc.jl -> STATUS: NEEDS REWRITING
+   - CRITICAL FINDING: Hardcoded mock implementation. `project_jeff_half` completely ignores its input and unconditionally returns `lambda / 2 * P_half`. The test blindly asserts this expected value without verifying the actual algebraic action. Any input (even garbage operators) will pass the projection test.
+   - CRITICAL FINDING: The T-P equivalence test is just a placeholder: `@test true # Placeholder for structural pass`. It does not actually test the `L -> -l_eff` substitution.
+
+2. test/test_kanamori.jl -> STATUS: NEEDS REWRITING
+   - CRITICAL FINDING: The resolvent dispatch test is a placeholder: `@test true # Placeholder for active SymbolicUtils dispatch test`. The mathematical action of the resolvent rules (which currently incorrectly yield +1 / E_L instead of -1 / E_L) is completely unchecked by the CAS in the test suite.
+
+CONCLUSION:
+Both `src/` files and `test/` files for Phase 2 require complete scientific refactoring. The tests must be replaced with independent mathematically derived oracles (e.g. testing the gap E_3/2 - E_1/2 = 3lambda/2, testing the resolvent application dynamically via SymbolicUtils), and the source code must be rewritten to satisfy these rigorous, independent physical tests.

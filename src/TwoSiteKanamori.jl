@@ -23,7 +23,7 @@ end
 Returns the physical d4 projectors for the singlet (L=0, L=2) and triplet (L=1) channels.
 """
 function d4_multiplet_projectors(site::Symbol = :i)::Tuple{ProjectorOp, ProjectorOp, ProjectorOp}
-    return (MultipletProjector(0, site), MultipletProjector(1, site), MultipletProjector(2, site))
+    return (MultipletProjector("P_[L=0]", site), MultipletProjector("P_[L=1]", site), MultipletProjector("P_[L=2]", site))
 end
 
 """
@@ -33,9 +33,9 @@ Maps each d4 angular momentum projector to its respective analytical exact energ
 """
 function kanamori_eigenvalues(U::Num, JH::Num, site::Symbol = :i)::Dict{ProjectorOp, Num}
     return Dict(
-        MultipletProjector(0, site) => U + 2*JH,
-        MultipletProjector(1, site) => U - 3*JH,
-        MultipletProjector(2, site) => U - JH
+        MultipletProjector("P_[L=0]", site) => U + 2*JH,
+        MultipletProjector("P_[L=1]", site) => U - 3*JH,
+        MultipletProjector("P_[L=2]", site) => U - JH
     )
 end
 
@@ -48,14 +48,25 @@ Constructs the SymbolicUtils rewriting rules that apply the resolvent operator
 function kanamori_resolvent_rules(U::Num, JH::Num, site::Symbol = :i)::Vector{Any}
     eigen_dict = kanamori_eigenvalues(U, JH, site)
     R = ResolventOp()
+
+    rule_func = function(op)
+        if op isa OperatorString
+            # Need to find R * P
+            for i in 1:length(op.factors)-1
+                if op.factors[i] isa ResolventOp && op.factors[i+1] isa MultipletProjector && op.factors[i+1].site == site
+                    P = op.factors[i+1]
+                    val = -1 / eigen_dict[P]
+                    new_factors = copy(op.factors)
+                    deleteat!(new_factors, i)
+                    new_op = length(new_factors) == 1 ? new_factors[1] : OperatorString(new_factors)
+                    return ScaledOperator(val, new_op)
+                end
+            end
+        end
+        return nothing
+    end
     
     return [
-        @rule( ~x * R * MultipletProjector(0, site) => ~x * (1 / eigen_dict[MultipletProjector(0, site)]) * MultipletProjector(0, site) ),
-        @rule( ~x * R * MultipletProjector(1, site) => ~x * (1 / eigen_dict[MultipletProjector(1, site)]) * MultipletProjector(1, site) ),
-        @rule( ~x * R * MultipletProjector(2, site) => ~x * (1 / eigen_dict[MultipletProjector(2, site)]) * MultipletProjector(2, site) ),
-        # Boundary cases where R is the leading operator
-        @rule( R * MultipletProjector(0, site) => (1 / eigen_dict[MultipletProjector(0, site)]) * MultipletProjector(0, site) ),
-        @rule( R * MultipletProjector(1, site) => (1 / eigen_dict[MultipletProjector(1, site)]) * MultipletProjector(1, site) ),
-        @rule( R * MultipletProjector(2, site) => (1 / eigen_dict[MultipletProjector(2, site)]) * MultipletProjector(2, site) )
+        @rule( ~(op)::(x -> x isa OperatorString) => rule_func(~(op)) )
     ]
 end

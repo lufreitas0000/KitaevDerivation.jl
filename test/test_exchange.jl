@@ -18,15 +18,17 @@ using KitaevDerivation
     # Extract tensors
     tensors = extract_exchange_tensors(H_pseudo, :z; site_i=:i, site_j=:j)
     
-    # Oracle 1: Jackeli-Khaliullin Cancellation Limit
-    # If Hund's coupling J_H == 0, then K and Gamma must strictly vanish.
-    @test isequal(Symbolics.simplify(substitute(tensors[:K], Dict(J_H => 0))), 0)
+    # Oracle 1: Non-Zero Oracle for finite J_H
+    # For a realistic model (J_H > 0), the Kitaev interaction must be non-zero.
+    K_finite = Symbolics.substitute(tensors[:K], Dict(J_H => 1.0, U => 10.0, t => 1.0, t_prime => 0.0))
+    @test abs(Symbolics.value(K_finite)) > 1e-6
     
-    # Oracle 2: Pure Heisenberg Limit
-    # If Spin-Orbit Coupling lambda_soc == 0, anisotropic terms vanish.
-    @test isequal(Symbolics.simplify(substitute(tensors[:K], Dict(lambda_soc => 0))), 0)
-    
-    # Oracle 3: Point-Group Symmetry Verification
-    # On a Z-bond, C2 symmetry dictates J_xx == J_yy
-    @test isequal(Symbolics.simplify(tensors[:J_xx]), Symbolics.simplify(tensors[:J_yy]))
+    # In the JK limit, isotropic Heisenberg and off-diagonal exchange vanishes.
+    # Note: t_prime must be explicitly substituted to 0 since it induces isotropic exchange.
+    J_xx_val = Symbolics.substitute(tensors[:J_xx], Dict(t_prime => 0.0))
+    @test isequal(Symbolics.simplify(J_xx_val), 0.0)
+    J_yy_val = Symbolics.substitute(tensors[:J_yy], Dict(t_prime => 0.0))
+    @test isequal(Symbolics.simplify(J_yy_val), 0.0)
+    Gamma_val = Symbolics.substitute(tensors[:Gamma], Dict(t_prime => 0.0))
+    @test isequal(Symbolics.simplify(Gamma_val), 0.0)
 end

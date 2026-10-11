@@ -26,7 +26,7 @@ end
 
 # 3. Physically Segregated Projectors
 struct MultipletProjector <: ProjectorOp
-    L::Int # 0, 1, 2
+    L::String # "P_[L=0]", "P_[L=1]", "P_[L=2]"
     site::Symbol
 end
 
@@ -226,12 +226,17 @@ function apply_algebraic_rules(op_seq::Vector{AbstractQuantumOperator})
     isempty(simplified) ? [IdentityOp()] : simplified
 end
 
-function apply_algebraic_rules(op::AbstractQuantumOperator, rules::Vector{Any})
+function apply_algebraic_rules(op::AbstractQuantumOperator, rules::AbstractVector)
     for rule in rules
         if rule isa Pair
             lhs, rhs = rule
             if op == lhs
                 return rhs
+            end
+        else
+            res = rule(op)
+            if res !== nothing
+                return res
             end
         end
     end

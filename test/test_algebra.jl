@@ -273,9 +273,9 @@ end
 
 @testset "[PROJECTOR] Projector Laws (Idempotency and Complete Orthogonality)" begin
     # Physical d^4 Kanamori multiplet projectors on site :i
-    P_0 = MultipletProjector(0, :i)
-    P_1 = MultipletProjector(1, :i)
-    P_2 = MultipletProjector(2, :i)
+    P_0 = MultipletProjector("P_[L=0]", :i)
+    P_1 = MultipletProjector("P_[L=1]", :i)
+    P_2 = MultipletProjector("P_[L=2]", :i)
     multiplets = [P_0, P_1, P_2]
 
     # 1. Idempotency: P_L^2 = P_L for all L in {0, 1, 2}
@@ -348,17 +348,17 @@ end
 
     # 8. Cross-site projector independence: projectors on distinct sites (:i != :j)
     # act on different Hilbert spaces and must NOT annihilate each other or collapse.
-    P_0_j = MultipletProjector(0, :j)
-    P_1_j = MultipletProjector(1, :j)
-    P_2_j = MultipletProjector(2, :j)
+    P_0_j = MultipletProjector("P_[L=0]", :j)
+    P_1_j = MultipletProjector("P_[L=1]", :j)
+    P_2_j = MultipletProjector("P_[L=2]", :j)
     P_half_j      = LowEnergyProjector("1/2", :j)
     P_threehalf_j = LowEnergyProjector("3/2", :j)
     P1_j = ParticleProjector(1, :j)
     P2_j = ParticleProjector(2, :j)
 
     # MultipletProjectors across sites (:i != :j)
-    for Li in 0:2
-        for Lj in 0:2
+    for Li in ["P_[L=0]", "P_[L=1]", "P_[L=2]"]
+        for Lj in ["P_[L=0]", "P_[L=1]", "P_[L=2]"]
             Pi = MultipletProjector(Li, :i)
             Pj = MultipletProjector(Lj, :j)
             @test apply_algebraic_rules(AbstractQuantumOperator[Pi, Pj]) == [Pi, Pj]
@@ -384,3 +384,20 @@ end
     @test apply_algebraic_rules(AbstractQuantumOperator[P_0, P_half_j]) == [P_0, P_half_j]
     @test apply_algebraic_rules(AbstractQuantumOperator[P_half, P_0_j]) == [P_half, P_0_j]
 end
+
+using SymbolicUtils
+
+@testset "[ALGEBRAIC] SymbolicUtils generic rule processing in AST" begin
+    # Test function rules
+    func_rule = x -> x isa FermionC ? IdentityOp() : nothing
+    @test apply_algebraic_rules(FermionC(:i, :xy, :up), [func_rule]) == IdentityOp()
+    
+    # Nested AST matching via function rule
+    op_str = OperatorString([FermionC(:i, :xy, :up), FermionA(:j, :yz, :up)])
+    @test apply_algebraic_rules(op_str, [func_rule]) == OperatorString([IdentityOp(), FermionA(:j, :yz, :up)])
+    
+    # Test SymbolicUtils @rule
+    sym_rule = @rule ~(x)::(op -> op isa FermionA) => IdentityOp()
+    @test apply_algebraic_rules(FermionA(:j, :yz, :up), [sym_rule]) == IdentityOp()
+end
+
