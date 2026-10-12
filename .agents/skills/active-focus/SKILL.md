@@ -20,7 +20,7 @@ Before proposing or executing code or proof tasks, always read `/home/lucas/Proj
 Work is strictly partitioned into three concurrent tracks:
 
 1. **Priority 1 (Deep Work — Primary Sprint):**
-   * Currently: `xxz-multimethod-benchmark` Milestone 1 (Exact Diagonalization in Lean 4 & Julia) and `Lean/finite-QMB` (Hal Tasaki CAR algebra & Perron-Frobenius).
+   * Currently: `xxz-benchmark` Milestone 1 (Exact Diagonalization in Lean 4 & Julia) and `Lean/finite-QMB` (Hal Tasaki CAR algebra & Perron-Frobenius).
    * All primary engineering energy belongs here.
 
 2. **Parallel Track (Foundations & Learning):**
