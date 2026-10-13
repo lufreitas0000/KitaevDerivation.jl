@@ -19,17 +19,12 @@ Before proposing or executing code or proof tasks, always read `/home/lucas/Proj
 
 Work is strictly partitioned into three concurrent tracks:
 
-1. **Priority 1 (Deep Work — Primary Sprint):**
-   * Currently: `xxz-benchmark` Milestone 1 (Exact Diagonalization in Lean 4 & Julia) and `Lean/finite-QMB` (Hal Tasaki CAR algebra & Perron-Frobenius).
-   * All primary engineering energy belongs here.
-
-2. **Parallel Track (Foundations & Learning):**
-   * Currently: `Lean/learning_lean/` (Category Theory in Lean 4 via Milewski CTFP + Mathlib foundational exercises).
-   * Progress is measured by demonstrated capability (Kanban: Backlog $\to$ Ready $\to$ In Progress $\to$ Review $\to$ Done).
-
-3. **Background Track (Corpus Transcriptions & Jules Verification):**
-   * Google Colab batch OCR (`references-transcripts`) and Jules background verification.
-   * Autonomous / asynchronous; does not consume primary interactive agent turns unless explicitly asked.
+1. **Priority 1:** Read the current cockpit. As of October 13, 2026, the
+   Web-LLM pipeline is primary; XXZ, bosonize-lean and finite-QMB implementation
+   waits until pipeline readiness or explicit user reprioritization.
+2. **Parallel:** Bounded `Lean/learning_lean/` category theory and Mathlib study.
+3. **Background:** Existing reference transcription/review activity. Do not
+   initiate unrelated jobs while completing the pipeline.
 
 > [!IMPORTANT]
 > **Icebox Guard:** Any repository or task listed under **Icebox / Standby** in `ACTIVE_FOCUS.md` (e.g., `climbing/`, `nexus/`, `islp/`, `archive/`) must NOT be worked on without explicit, direct user instruction.
@@ -68,9 +63,9 @@ Whenever an agent encounters:
 The agent **MUST** log the event in the project's `LOG_DISCOVERY_AND_PIVOTS.md` before changing definitions or pivoting code:
 
 ```markdown
-| Date | Context / Target Lemma | Obstruction / Bottleneck | Resolution / Architectural Pivot |
-| :---: | :---: | :--- | :--- |
-| YYYY-MM-DD | [Module / Lemma] | [Specific obstruction encountered] | [Concrete resolution or pivot taken] |
+| Date | Module/Context | Obstruction | Pivot/Resolution | Status |
+| --- | --- | --- | --- | --- |
+| YYYY-MM-DD | [Module / Lemma] | [Specific obstruction] | [Resolution] | [Status] |
 ```
 
 ---
