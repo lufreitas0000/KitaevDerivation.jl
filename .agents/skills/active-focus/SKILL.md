@@ -19,9 +19,10 @@ Before proposing or executing code or proof tasks, always read `/home/lucas/Proj
 
 Work is strictly partitioned into three concurrent tracks:
 
-1. **Priority 1:** Read the current cockpit. As of October 13, 2026, the
-   Web-LLM pipeline is primary; XXZ, bosonize-lean and finite-QMB implementation
-   waits until pipeline readiness or explicit user reprioritization.
+1. **Priority 1:** Read the current cockpit. As of October 15, 2026, the
+   pipeline (browser packets and `agentctl` multi-backend routing) is ready and in
+   use for the remaining bosonize-lean chapters (CH18 Phase B in progress); XXZ and
+   finite-QMB wait for explicit user reprioritization.
 2. **Parallel:** Bounded `Lean/learning_lean/` category theory and Mathlib study.
 3. **Background:** Existing reference transcription/review activity. Do not
    initiate unrelated jobs while completing the pipeline.
