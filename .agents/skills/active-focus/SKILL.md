@@ -20,9 +20,10 @@ Before proposing or executing code or proof tasks, always read `/home/lucas/Proj
 Work is strictly partitioned into three concurrent tracks:
 
 1. **Priority 1:** Read the current cockpit. As of October 15, 2026, the
-   pipeline (browser packets and `agentctl` multi-backend routing) is ready and in
-   use for the remaining bosonize-lean chapters (CH18 Phase B in progress); XXZ and
-   finite-QMB wait for explicit user reprioritization.
+   current authorized sprint is infrastructure I0–I2: external task support and an
+   easy manual browser packet/check/retry cycle. New chapter/book work and the live
+   pilot are later gates. Jules/OpenAI are preferred; Antigravity is disabled by
+   default. XXZ and finite-QMB wait for explicit reprioritization.
 2. **Parallel:** Bounded `Lean/learning_lean/` category theory and Mathlib study.
 3. **Background:** Existing reference transcription/review activity. Do not
    initiate unrelated jobs while completing the pipeline.

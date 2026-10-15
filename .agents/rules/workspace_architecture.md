@@ -6,12 +6,14 @@ before starting work. Tiers determine audit coverage, not permission to expand
 implementation scope. Root files belong to the hub; child projects are independent
 Git repositories, never automatically submodules of the hub.
 
-## Current allocation (user decision, October 13, 2026)
+## Current allocation (user decision, October 15, 2026)
 
-Primary development is the Web-LLM packet/ingestion pipeline. Defer XXZ,
-bosonize-lean and finite-QMB implementation until pipeline readiness. Bounded
-learning_lean study is parallel; reference transcription/review is background.
-Do not start standby projects without explicit direction.
+The immediate authorized sprint is shared external task infrastructure I0–I2,
+including an effortless manual browser packet/check/retry path. Preserve frozen
+Bosonize-Lean sources and chapter state; the live CH18 pilot and new chapter work
+remain subsequent sprints. Prefer Jules and eligible OpenAI API resources, with
+no default Antigravity author/reviewer/fallback. See ACTIVE_FOCUS.md for the current
+status, parallel foundations track and background literature work.
 
 ## Domain and verification contracts
 
@@ -24,8 +26,7 @@ Julia uses project-local environments. Publication projects own their assets.
 Local agents implement, test and review repository changes. Browser LLMs receive
 bounded packets and return candidate files; whitelist, interface checks and local
 verification decide acceptance. Colab performs background compute/transcription;
-Jules works only on explicitly assigned jobs. Optional model APIs may transport
-packets later, but do not bypass acceptance gates. No subscription or model
+Jules works only on explicitly assigned jobs. Configured API/Jules transports and browser handoffs share acceptance gates. No subscription or model
 availability is assumed. See the hub README routing table and llm/PROTOCOL.md.
 
 Keep valid GitHub remotes on lufreitas0000 for active repositories. Preview all
