@@ -1,5 +1,9 @@
 # Kitaev Derivation: Automated Formalization of the Extended Kitaev-Heisenberg Model
 
+**Goal:** Automate exact strong-coupling Schrieffer-Wolff perturbation theory (Hubbard-Kanamori + SOC -> JKGamma) in Julia with Lean-verifiable algebraic invariants.
+**Definition of Done (DoD):** All `Pkg.test()` suites (algebra, SOC, Kanamori, Schrieffer-Wolff, exchange extraction) pass cleanly on single `main` with reproducible derivations.
+**Next Steps:** Port verified Phase 3 Appendix A macroscopic commutator oracles from archived commit `0aed437` into tested `src/ExchangeExtraction.jl` modules.
+
 This repository contains the neuro-symbolic framework (Julia + Lean 4) designed to derive the low-energy effective spin Hamiltonian of strongly correlated $4d/5d$ Mott insulators.
 
 ## Project Scope

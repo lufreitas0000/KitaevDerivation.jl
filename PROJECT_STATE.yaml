@@ -1,0 +1,21 @@
+schema_version: 1
+project_name: KitaevDerivation.jl
+lifecycle: active
+active_phase: 2
+current_milestone: M2.1
+active_milestone:
+  id: M2.1
+  objective: 'Consolidate repo to single `main`, archive & record Phase 3 TDD checkpoint `0aed437`, and establish Four-Record + HORIZON + UoW governance.'
+  status: active
+  active_tasks:
+    - id: T1
+      title: 'Adopt Four-Record governance, document archived Phase 3 checkpoint 0aed437, and sync .agents/'
+      status: in_progress
+      target_files:
+        - README.md
+        - PROJECT_STATE.yaml
+        - LOG_DISCOVERY_AND_PIVOTS.md
+        - HORIZON.md
+      validation: 'python3 /home/lucas/Projects/scripts/uow.py check --repo KitaevDerivation.jl'
+milestone_history: []
+verified_invariants: []
