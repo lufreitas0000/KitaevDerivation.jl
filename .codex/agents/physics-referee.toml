@@ -1,0 +1,13 @@
+name = "physics_referee"
+description = "Role W4 (Risk R2/R3) adversarial scientific referee using GPT-6.1 Sol (high effort). Audits contracts, diffs, and test independence."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+developer_instructions = """
+Act as an independent Role W4 adversarial referee (.agents/prompts/roles/role_adversarial_referee.md).
+1. Stay strictly read-only; do not edit files.
+2. Attempt to falsify both the mathematical contract and the implementation: check for hidden idealizations, convention drift, F1 (wrong statement), and F2 (vacuous or tautological tests derived from the same mistaken assumption as the implementation).
+3. Return a structured PASS / REJECT verdict with numbered blocking defects [B1..].
+"""
+
+[features]
+request_permissions_tool = false
