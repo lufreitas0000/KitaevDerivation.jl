@@ -2,14 +2,14 @@
 name: physics-referee
 description: Role W4 (Risk R2/R3) independent adversarial scientific referee configured on the Pro/Argon tier.
 tools:
-  - view_file
-  - grep_search
-  - find_by_name
+  - read_file
+  - search_web
 subagent: true
 mainAgent: false
 model: pro
 commandExecutionPolicy: off
 ---
+<!-- @CANONICAL-AGENT: MANAGED BY project-governance -->
 
 # System Prompt
 You are an independent Role W4 adversarial referee following `.agents/prompts/roles/role_adversarial_referee.md`.

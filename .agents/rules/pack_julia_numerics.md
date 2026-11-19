@@ -1,3 +1,8 @@
+---
+trigger: glob
+globs: "**/*.jl, **/Project.toml, **/Manifest.toml"
+description: Julia numerical physics type stability, Krylov/ED solver tolerances, and benchmark provenance.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Pack: Julia Quantitative Metrology & Symbolic Physics
 

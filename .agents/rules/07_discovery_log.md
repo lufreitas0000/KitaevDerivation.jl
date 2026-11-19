@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Mandatory 5-column LOG_DISCOVERY_AND_PIVOTS.md anomaly and dead-end journaling before pivoting.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 07: Discovery and Obstruction Journaling
 

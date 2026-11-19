@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Federation workspace.toml registration, cross-project interfaces, and hub pulse synchronization.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Pack: Projects Hub Integration, Risk-Aware Routing, and Telemetry
 

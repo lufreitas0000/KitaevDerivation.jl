@@ -1,3 +1,7 @@
+---
+trigger: always_on
+description: Specification-before-implementation, red-green-refactor, and non-tautological test invariants.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 02: Testing and Numerical Verification
 

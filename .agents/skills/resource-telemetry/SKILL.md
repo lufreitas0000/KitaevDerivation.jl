@@ -9,29 +9,29 @@ description: >-
 
 # Resource Telemetry & Empirical ROI Skill
 
-This skill governs multi-agent resource monitoring, empirical yield auditing, cost-per-proof optimization, and budget admission controls across the `/home/lucas/Projects` workspace.
+This skill governs multi-agent resource monitoring, empirical yield auditing, cost-per-proof optimization, and budget admission controls across the workspace hub (`$HOME/Projects`).
 
 ---
 
 ## 1. Quick Telemetry & Audit Commands
 
-Any agent or operator can inspect, update, or audit compute resources using these standard CLI entrypoints:
+Any agent or operator can inspect, update, or audit compute resources using these standard CLI entrypoints from the workspace hub:
 
 ```bash
 # 1. Real-time ANSI telemetry dashboard
 proj-compute
-# or: python3 /home/lucas/Projects/scripts/compute_tracker.py
+# or: python3 scripts/compute_tracker.py
 
 # 2. Raw JSON telemetry data
-python3 /home/lucas/Projects/scripts/compute_tracker.py --json
+python3 scripts/compute_tracker.py --json
 
 # 3. Dispatch native distraction-free push summary to iOS via ntfy.sh
 proj-compute-notify
-# or: python3 /home/lucas/Projects/scripts/compute_tracker.py --notify
+# or: python3 scripts/compute_tracker.py --notify
 
 # 4. Compile empirical yield & ROI report (YIELD_REPORT.md)
 make yield-report
-# or: python3 /home/lucas/Projects/scripts/generate_yield_report.py
+# or: python3 scripts/generate_yield_report.py
 
 # 5. Check daily token pool reconciliation and 80%/90% safety flags
 make api-ledger
@@ -39,7 +39,7 @@ make api-ledger
 
 # 6. Run pre-flight checks (secrets, admission headroom, git hygiene)
 make preflight
-# or: python3 /home/lucas/Projects/scripts/preflight_check.py
+# or: python3 scripts/preflight_check.py
 ```
 
 ---
@@ -110,8 +110,8 @@ To measure development velocity and economic efficiency across nonlinear researc
    * $$\text{Yield}_{\text{Jules}} = \frac{\text{Accepted Chapter Artifacts}}{\text{Jules Sessions Completed}}$$
    * $$\text{Verification Pass Rate} = \frac{\text{Verified Candidates}}{\text{Total Attempts}} \times 100\%$$
 3. **Benchmark Reports:**
-   * Running `make yield-report` regenerates [`orchestrator/benchmarks/YIELD_REPORT.md`](file:///home/lucas/Projects/orchestrator/benchmarks/YIELD_REPORT.md).
-   * Running `make bench-report` computes Wilson 95% confidence intervals on model performance in [`orchestrator/benchmarks/REPORT.md`](file:///home/lucas/Projects/orchestrator/benchmarks/REPORT.md).
+   * Running `make yield-report` regenerates `orchestrator/benchmarks/YIELD_REPORT.md`.
+   * Running `make bench-report` computes Wilson 95% confidence intervals on model performance in `orchestrator/benchmarks/REPORT.md`.
 
 ---
 

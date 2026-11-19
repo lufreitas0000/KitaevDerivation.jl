@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Pre-registered doc/hypotheses/HC-XX.yaml contracts, Bayesian BIC/AICc falsification, and BCa bootstrap CIs.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 08: Living Hypothesis Contracts, Scientific Falsification & ACID Provenance
 

@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Three-Front R&D architecture (doc/rnd, doc/labbook, doc/manuscript), citation verification, and claim rigor.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 03: Three-Front R&D Architecture, Editorial Rigor, and Provenance
 

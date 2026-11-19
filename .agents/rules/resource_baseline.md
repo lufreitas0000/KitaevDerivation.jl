@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: Compute telemetry ledgers, admission caps, and empirical yield reporting.
+---
+<!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Workspace Resource Baseline, Quotas & Allocation Directives
 
 This document establishes the canonical theoretical resource breakdown, daily admission ceilings, and adaptive delegation directives across the workspace. All agent instances, automated pipelines (`agentctl`), and human-in-the-loop operators must adhere to these baselines.
@@ -56,9 +61,18 @@ To maintain an empirical baseline of development velocity across nonlinear resea
    * Verification outcomes across all gates (`commit_guards`, `ingest_validate`, `verify_commands`).
 
 2. **Automated Yield Reporting:**
-   * Running `make yield-report` compiles `runs.jsonl`, `.agentctl/ledger/jules_sessions.json`, and git commits into [`orchestrator/benchmarks/YIELD_REPORT.md`](file:///home/lucas/Projects/orchestrator/benchmarks/YIELD_REPORT.md).
+   * Running `make yield-report` compiles `runs.jsonl`, `.agentctl/ledger/jules_sessions.json`, and git commits into [`orchestrator/benchmarks/YIELD_REPORT.md`](file:///home/lu/Projects/orchestrator/benchmarks/YIELD_REPORT.md).
    * Yield metrics tracked include:
      $$\text{Yield}_{\text{theorems}} = \frac{\text{Theorems Proved}}{\text{Total Tokens (M)}}, \quad \text{Yield}_{\text{cost}} = \frac{\text{Proved Theorems}}{\text{Total USD Spent}}, \quad \text{Yield}_{\text{Jules}} = \frac{\text{Accepted Chapters}}{\text{Sessions Completed}}$$
 
 3. **Obstruction & Discovery Journaling:**
    * When an unexpected tactic bottleneck, model capability limit, or architectural obstruction occurs, record the event in the active repository's `LOG_DISCOVERY_AND_PIVOTS.md` before altering interfaces or switching models.
+
+## 4. Subscription Telemetry Provenance & Jules Sunset Update (November 2026)
+
+1. **Time-Dependent Assumptions vs. Live Telemetry (`scripts/quota_telemetry_daemon.py`):**
+   - The daily token capacities and yields in Section 1 represent theoretical design baselines for `agentctl` pools, not guaranteed subscription allowances.
+   - Subscription quotas for **Codex / Work** (`300`-minute 5h window and `10080`-minute weekly window) and **Antigravity** are workload-dependent and must be tracked with explicit provenance (`source`, `observed_at_utc`, `status`) via `scripts/quota_telemetry_daemon.py` and `scripts/compute_tracker.py --offline`.
+   - Never fabricate default balances (`100%`) when a source is unobserved or stale, and mark an agent `Exhausted` whenever either its 5-hour or weekly bucket reaches `0.0%`.
+2. **Google Jules Official Sunset Schedule:**
+   - Per the October 29, 2026 Google Jules changelog, Jules remains usable for finishing active sessions through **November 11, 2026**, enters **read-only mode** from November 11 through December 30, 2026, and **shuts down on December 31, 2026**. All new chore/prose/proof workflows transition to `agentctl` pools, local `qwen3.5:35b-a3b`, and scoped subagents.

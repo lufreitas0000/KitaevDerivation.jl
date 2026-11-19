@@ -1,3 +1,7 @@
+---
+trigger: always_on
+description: PG-10 Atomic Unit-of-Work lifecycle, Goal/Scope/DoD contracts, and dual-section CHANGELOG gates.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # PG-10: Atomic Units of Work and Repository-First Governance
 

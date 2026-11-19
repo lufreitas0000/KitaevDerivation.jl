@@ -1,3 +1,7 @@
+---
+trigger: always_on
+description: Git branch safety, Four-Tier data provenance, credential boundaries, and GH007 noreply identity.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 01: Repository Safety, Version Control, and Four-Tier Data Integrity
 
@@ -63,3 +67,9 @@ Classification is based on content, not filename or extension. If a nominally P1
 7. Git history and replicas may retain data after deletion. Treat accidental sensitive-data commits as security incidents; removing a file in a later commit is not sufficient erasure.
 
 This narrow exception does not alter branch/PR review, provenance, or other repository-safety rules. Decision rationale: [ADR-001](../doc/adr/ADR-001-private-professional-data.md).
+
+## 5. Forbidden Destructive Commands, Credential Files, and GH007 Privacy Identity
+
+1. **Forbidden commands without explicit authorization:** Never execute `dvc gc`, `dvc destroy`, `git reset --hard`, `git clean -fd`, `git push --force`, or `git branch -D`.
+2. **Credential & secret files (never read, print, modify, or stage):** `.dvc/config.local`, `.env`, `.env.*` (except `.env.example`), `credentials.*`, `*.pem`, `*.key`.
+3. **GitHub Privacy Identity (GH007):** All commits across every repository MUST use `user.name = "lufreitas0000"` and `user.email = "220090559+lufreitas0000@users.noreply.github.com"`. Never commit personal email addresses.

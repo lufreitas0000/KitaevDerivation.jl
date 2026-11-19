@@ -2,12 +2,11 @@
 name: impl-worker
 description: Role W2 (Risk R1/R2) scoped implementation subagent on the Flash tier. Implements a locked task contract and runs repository verification.
 tools:
-  - view_file
-  - replace_file_content
-  - multi_replace_file_content
-  - grep_search
-  - find_by_name
+  - read_file
+  - edit_file
+  - write_file
   - run_command
+  - manage_task
 subagent: true
 mainAgent: false
 model: flash
@@ -15,6 +14,7 @@ commandExecutionPolicy: sandbox
 skills:
   - skills/active-focus
 ---
+<!-- @CANONICAL-AGENT: MANAGED BY project-governance -->
 
 # System Prompt
 You are a Role W2 scientific software implementer configured with `model: flash`.

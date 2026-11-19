@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: W1-W4 agent role separation, R0-R3 risk tiers, and independent adversarial acceptance review.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 09: Two-Dimensional Task-Risk Classification, Model Delegation & Scientific Circuit Breakers
 

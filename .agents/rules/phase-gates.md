@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: KitaevDerivation.jl phase gates for BasisAndAlgebra and independent physics audits.
+---
+<!-- @LOCAL-OVERRIDE: repo-specific customization -->
 # Phase Gates
 
 ## Gate 1 — BasisAndAlgebra

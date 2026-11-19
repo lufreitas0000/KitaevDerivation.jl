@@ -15,45 +15,42 @@ This skill governs workspace-wide focus alignment, preventing context drift acro
 
 ## 1. The "Rule of 3" & Sprint Alignment
 
-Before proposing or executing code or proof tasks, always read `/home/lucas/Projects/ACTIVE_FOCUS.md`.
+Before proposing or executing code or proof tasks, always read `$HOME/Projects/ACTIVE_FOCUS.md` (resolved dynamically from the hub root).
 
 Work is strictly partitioned into three concurrent tracks:
 
 1. **Priority 1:** Read the latest project-specific direction in the cockpit.
-   Bosonize-Lean CH19/A08 and finite CH20 are promoted; its current request is
-   status/Git reconciliation and independent theory prompts before new CH20b/CH21
-   implementation. Version 1 is standalone; the finiteQMB-based version 2 refactor
-   is deferred. finiteQMB is separately active under its own direction. Historical
+   Bosonize-Lean CH19/A08 and finite CH20 are promoted (`research/qft-duality/bosonize-lean`);
+   `research/qsl/` (`kitaev-mf` single-main reconciled) and `research/qmb/finite-QMB` run under their own owner directions. Historical
    infrastructure/standby snapshots must not override later user instructions.
    External dispatch and proof work need authorization within the current scope.
 
-2. **Parallel:** Bounded `Lean/learning_lean/` category theory and Mathlib study.
-3. **Background:** Existing reference transcription/review activity. Do not
+2. **Parallel:** Bounded `study/learning-lean/` category theory and Mathlib study.
+3. **Background:** Existing reference transcription/review activity (`library/`). Do not
    initiate unrelated jobs while completing the pipeline.
 
 > [!IMPORTANT]
-> **Icebox Guard:** Any repository or task listed under **Icebox / Standby** in `ACTIVE_FOCUS.md` (e.g., `climbing/`, `nexus/`, `islp/`, `archive/`) must NOT be worked on without explicit, direct user instruction.
+> **Icebox Guard:** Any repository or task listed under **Icebox / Standby** in `ACTIVE_FOCUS.md` (e.g., `hobbies/climbing/`, `islp/`, `archive/`) must NOT be worked on without explicit, direct user instruction.
 
 ---
 
 ## 2. Workspace Health & Activity Inspection
 
-Any agent beginning a session or major sprint milestone should run:
+Any agent beginning a session or major sprint milestone should run (optionally scoped with `--state qsl`):
 
 ```bash
 # 1. Quick parallel health check
-python3 /home/lucas/Projects/status.py
+proj-status  # or: python3 status.py [--state <STATE>]
 
 # 2. Check uncommitted diffs or last commit diffstat
-python3 /home/lucas/Projects/status.py --diff
+proj-diff    # or: python3 status.py --diff
 
 # 3. Check recent commits across active repositories
-python3 /home/lucas/Projects/status.py --recent 3
+proj-recent  # or: python3 status.py --recent 3
 
 # 4. Check recent mathematical & architectural pivot entries
-python3 /home/lucas/Projects/status.py --pivots
+proj-pivots  # or: python3 status.py --pivots
 ```
-*(Or the bash aliases: `proj-status`, `proj-diff`, `proj-recent`, `proj-pivots`, `proj-summary`).*
 
 ---
 
@@ -80,4 +77,4 @@ The agent **MUST** log the event in the project's `LOG_DISCOVERY_AND_PIVOTS.md` 
 When a milestone sub-task completes:
 1. Ensure the code compiles (`lake build` for Lean, `julia --project -e 'using Pkg; Pkg.test()'`).
 2. Verify git cleanliness (`git status` clean, commit pushed to `origin`).
-3. Update the corresponding checkbox or Kanban status in `/home/lucas/Projects/ACTIVE_FOCUS.md`.
+3. Update the corresponding checkbox or Kanban status in `/home/lu/Projects/ACTIVE_FOCUS.md`.

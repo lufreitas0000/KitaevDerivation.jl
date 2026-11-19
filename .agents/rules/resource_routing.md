@@ -1,3 +1,8 @@
+---
+trigger: model_decision
+description: Multi-backend compute routing across local Ollama, agentctl complimentary pools, Gemini MCP, and Colab L4/G4.
+---
+<!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Workspace Resource Routing & Offloading Policy
 
 This document establishes the resource selection criteria and offloading protocols across the workspace. Agents, scripts, and subagents must consult this policy before selecting an execution backend or dispatching computational work.
@@ -11,7 +16,7 @@ This document establishes the resource selection criteria and offloading protoco
 | **Lean Theorem Proving (Phase B)** | **OpenAI Free Pool (`api-fast`)** | **Gemini Flash (`gem-flash`)** | `agentctl theorem` / `prove-file` | Maximizes zero-cost complimentary tokens (`gpt-5.4-mini`) before paid credits. |
 | **Lean Statement Design & Spec (Phase A)** | **Gemini Pro (`gem-pro`)** | **OpenAI Pro (`api-pro`)** | `agentctl send --alias gem-pro` or `gemini-pro-api` skill | Requires high reasoning depth and large context windows for anti-vacuity. |
 | **Mechanical Compiler Repair** | **OpenAI Free Pool (`api-fast`)** | **Gemini Flash (`gem-flash`)** | `agentctl send --alias api-fast` behind preservation gate | Rapid, low-latency syntax/lemma fixes without consuming reasoning pools. |
-| **Repo Maintenance, Docs & Git PRs** | **OpenAI Free Pool (`api-fast`)** | **Gemini Flash (`gem-flash`)** $\to$ **Local Ollama** | `agentctl` / local scripts | Async Jules is deprecated (sunset after Nov 10, 2026); use complimentary pool and local tools. |
+| **Repo Maintenance, Docs & Git PRs** | **OpenAI Free Pool (`api-fast`)** | **Gemini Flash (`gem-flash`)** $\to$ **Local Ollama** | `agentctl` / local scripts | Async Jules is winding down (active completion through Nov 11, 2026; read-only Nov 11–Dec 30; shutdown Dec 31, 2026); use complimentary pool and local tools. |
 | **Literature OCR & GPU Batch Tasks** | **Google Colab CLI (`colab-cli`)** | **Local Server (CPU/MPS)** | `colab-cli run --gpu L4` (or `G4` Blackwell 96GB) | Offloads heavy VRAM / CUDA workloads to Google Cloud; auto-terminates VM. |
 | **Local Drafts & Interactive CLI Agents** | **Local Ollama (`qwen3.5:35b-a3b`)** | **OpenAI Free Pool (`api-fast`)** | `qwen-local`, `aider-local`, `aider-hybrid` | Sparse MoE (3B active params/token, ~21 tok/s in 4.9 GB VRAM + 12 GB DDR5); zero cloud quota. |
 | **Overnight Batch Extraction & LaTeX Repair** | **Local Ollama (`qwen3.5:35b-a3b`)** | **Local ReAct Retry $\to$ `api-fast`** | `llm/benchmarks/overnight_pipeline.py` | 3-stage cascade behind deterministic quote/LaTeX/prose-retention verifier; capped cloud fallback. |
@@ -51,3 +56,17 @@ Regardless of which resource generated a patch or candidate proof (Jules, OpenAI
 2. Code must be checked through the local namespace sandbox (`llm/runtime/sandbox.py`).
 3. Lean code must build against Lake and pass anti-vacuity checks (`lean_minimal_hypotheses`, non-degeneracy witnesses).
 4. Julia scripts must verify against independent mathematical specifications or analytical limits.
+
+---
+
+## 4. Two-Dimensional Risk Routing (`W1–W4` $\times$ `R0–R3`) & Subscription Boundaries
+
+In addition to the `agentctl` batch/API rules in Sections 1–3 above, interactive and subagent sessions in **OpenAI Codex CLI/IDE** and **Google Antigravity** must abide by [`09_model_risk_and_delegation.md`](./09_model_risk_and_delegation.md):
+
+1. **Strict Separation of Subscription Allowances vs. API Pools:**
+   - **OpenAI Complimentary API Pools (`api-fast`, `api-pro`)** and **Gemini Cloud API (`gem-flash`, `gem-pro`)** are billed/metered via `orchestrator/agentctl` (`models.toml`) and are completely separate from your interactive **ChatGPT Plus (Codex/Work)** and **Google One AI Pro (Antigravity)** subscriptions. Never infer subscription quota percentages from API token prices.
+   - As of November 8, 2026, the OpenAI Usage History dashboard states: *"See how plan usage and credits were consumed in Work, Codex, and other agentic tasks. Conversations in Chat are not included."* Standard **ChatGPT Web Chat** (`chatgpt.com`) is therefore preferred for **W1 (Scientific Specification)** and **W4 (Independent Diff Referee)** to preserve local Codex/Work rolling windows (`300` min and `10080` min).
+2. **Configurable Subagent Defaults & Concurrency:**
+   - `.codex/config.toml` sets starting defaults `model = "gpt-6.1-terra"`, `model_reasoning_effort = "medium"`, `max_concurrent_threads_per_session = 2` (which counts spawned subagents excluding the primary thread), and `default_subagent_model = "gpt-6-luna"`.
+   - Launch `codex -m gpt-6.1-sol` explicitly when `W1`/`W4` (`R2`/`R3`) mathematical reasoning is required locally.
+   - In Antigravity, `.agents/agents/{code-scout,impl-worker}.md` use `model: flash` and `physics-referee.md` uses `model: pro`. Avoid `/boost` and `/teamwork` on routine tasks.

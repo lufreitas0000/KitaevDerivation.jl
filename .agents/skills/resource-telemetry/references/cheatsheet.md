@@ -1,6 +1,6 @@
 # Resource Telemetry & Quota Management Cheat Sheet
 
-This reference details the CLI tools, environment files, and configuration paths governing compute telemetry across the `/home/lucas/Projects` hub.
+This reference details the CLI tools, environment files, and configuration paths governing compute telemetry across the `/home/lu/Projects` hub.
 
 ---
 

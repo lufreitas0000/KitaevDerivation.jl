@@ -20,6 +20,11 @@ Use this skill whenever the user asks about:
 Never guess or hallucinate project state, milestone IDs, or equations. Always execute the deterministic orchestrator tools first:
 
 ```bash
+# 0. Inspect a whole Federation State (recommended first for Orchestrator Carbon):
+PYTHONPATH=orchestrator python3 -m agentctl state <STATE_ID> status
+PYTHONPATH=orchestrator python3 -m agentctl state <STATE_ID> contracts
+# (Or Makefile shortcuts: make state-status STATE=qsl, make state-contracts STATE=qsl)
+
 # 1. Inspect project status & active sprint tasks:
 PYTHONPATH=orchestrator python3 -m agentctl project <PROJECT_NAME> status
 # (Or Makefile shortcut: make proj-status PROJ=<PROJECT_NAME>)

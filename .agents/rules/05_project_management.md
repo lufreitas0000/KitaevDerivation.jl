@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Four-Record planning system (PROJECT_STATE.yaml, CURRENT_SPRINT.md, HORIZON.md, BACKLOG.md) and cross-repo issues.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 05: Project Management — Phases, Milestones, Tasks, and Sprints
 

@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Semantic versioning, release tagging, and reproducible build/DVC artifact binding.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 04: Versioning, Changelog, and Releases
 

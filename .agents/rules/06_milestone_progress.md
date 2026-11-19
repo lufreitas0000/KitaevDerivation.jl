@@ -1,3 +1,7 @@
+---
+trigger: model_decision
+description: Milestone task numbering (T1..TN), evidence verification, and sprint closure gates.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 06: Milestone Progress and Commit-Level Handover
 

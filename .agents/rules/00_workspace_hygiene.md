@@ -1,3 +1,7 @@
+---
+trigger: always_on
+description: Working-tree hygiene, preservation of unrelated edits, and module granularity invariants.
+---
 <!-- @CANONICAL-RULE: DO NOT EDIT DIRECTLY. MANAGED BY project-governance -->
 # Rule 00: Workspace Hygiene and Repository Layout
 
